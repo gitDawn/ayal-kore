@@ -177,6 +177,41 @@ async function searchCatalog() {
     }
 }
 
+// Helper function to format date fields
+function formatDateField(value, fieldName) {
+    // Date fields that need formatting
+    const dateFields = ['ת.פתיחה', 'ת.עדכון', 'ת.מה.ראשונה'];
+
+    if (!dateFields.includes(fieldName)) {
+        return value;
+    }
+
+    if (!value) return '';
+
+    try {
+        // Handle Excel date serial numbers
+        if (typeof value === 'number') {
+            // Excel date: days since 1900-01-01
+            const excelEpoch = new Date(1899, 11, 30); // Excel's epoch
+            const date = new Date(excelEpoch.getTime() + value * 86400000);
+            return date.toLocaleDateString('he-IL');
+        }
+
+        // Handle date strings
+        if (typeof value === 'string') {
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('he-IL');
+            }
+        }
+
+        // Return as-is if can't parse
+        return value;
+    } catch (error) {
+        return value;
+    }
+}
+
 // Display search results in table
 function displayResults(results) {
     const resultsTitle = document.getElementById('results-title');
@@ -212,7 +247,11 @@ function displayResults(results) {
     results.forEach(row => {
         html += '<tr>';
         displayFields.forEach(field => {
-            const value = row[field] !== null && row[field] !== undefined ? row[field] : '';
+            let value = row[field] !== null && row[field] !== undefined ? row[field] : '';
+
+            // Format date fields
+            value = formatDateField(value, field);
+
             html += `<td>${value}</td>`;
         });
         html += '</tr>';
