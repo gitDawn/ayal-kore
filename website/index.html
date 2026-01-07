@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>קטלוג ספרים - האיל הקורא</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>קטלוג ספרים - האיל הקורא</h1>
+            <p class="subtitle">מערכת ניהול מלאי ספרים משומשים</p>
+        </header>
+
+        <main>
+            <!-- Part 1: Upload Danalog Database -->
+            <section id="upload-section" class="card">
+                <h2>1. העלאת קטלוג דאנאלוג</h2>
+                <div class="upload-area">
+                    <input type="file" id="excel-file" accept=".xlsx,.xls" />
+                    <button id="upload-btn" onclick="uploadDanalog()">העלה קטלוג</button>
+                    <div id="upload-status" class="status-message"></div>
+                </div>
+            </section>
+
+            <!-- Part 2: Search Catalog -->
+            <section id="search-section" class="card">
+                <h2>2. חיפוש בקטלוג</h2>
+                <div class="search-area">
+                    <div class="search-controls">
+                        <select id="search-column">
+                            <option value="">-- בחר שדה לחיפוש --</option>
+                            <option value="דאנאקוד">דאנאקוד</option>
+                            <option value="שם">שם הספר</option>
+                            <option value="ת.מחלקה">מחלקה</option>
+                            <option value="מחיר">מחיר</option>
+                            <option value="מחבר">מחבר</option>
+                            <option value="נושא">נושא</option>
+                            <option value="ברקוד">ברקוד</option>
+                            <option value="ת.פתיחה">תאריך פתיחה</option>
+                            <option value="ת.עדכון">תאריך עדכון</option>
+                            <option value="ת.מה.ראשונה">מהדורה ראשונה</option>
+                        </select>
+                        <input type="text" id="search-text" placeholder="הזן טקסט לחיפוש..." />
+                        <button id="search-btn" onclick="searchCatalog()">חפש</button>
+                    </div>
+                    <div id="search-status" class="status-message"></div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="results-area" class="results-container">
+                    <h3 id="results-title" style="display: none;">תוצאות חיפוש</h3>
+                    <div id="results-table"></div>
+                </div>
+            </section>
+
+            <!-- Database Statistics -->
+            <section id="stats-section" class="card">
+                <h2>סטטיסטיקות מסד נתונים</h2>
+                <div id="stats-area">
+                    <button onclick="loadStats()">טען סטטיסטיקות</button>
+                    <div id="stats-display"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>מערכת ניהול קטלוג ספרים - האיל הקורא &copy; 2026</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

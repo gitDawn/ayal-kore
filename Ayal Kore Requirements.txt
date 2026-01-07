@@ -6,9 +6,40 @@
 במקרים אשר אופן השימוש אינו מתואר באופן ברור וחד משמעי, יש לשאול שאלות מנחות כדי ליצור את אופן השימוש במדויק.
 
 # local location of website
-C:\Users\user\Google Drive Streaming\My Drive\Work\Simania Eyal\Ayal_Kore\website
-This would be the primary location of the website.
-Later on it would be uploaded it github .io website.
+This would be the primary location of local:
+"C:\Users\user\Google Drive Streaming\My Drive\Work\Simania Eyal\Ayal_Kore\"
+The location of the related git repository and website is
+https://github.com/gitDawn/ayal-kore
+primary requirements file is 
+"C:\Users\user\Google Drive Streaming\My Drive\Work\Simania Eyal\Ayal_Kore\Ayal Kore Requirements.txt"
+
+# Danalog Catalog fields in database and description
+זהו קטלוג דאנאקוד או דאנאלוג, ואלו העמודות והרשמות שהוא מכיל על כל ספר
+Danalog Catalog Columns:
+ש.לפריט - Item serial number
+דאנאקוד - Danalog code
+שם - Name/Title
+ק.מחלקה - Department code
+ת.מחלקה - Department description
+מחיר - Price
+מ.מיוחד - Special price
+מ.מיוחד1 - Special price 1
+לימוד - Study/Educational
+מאושר - Approved
+ק.יצרן - Manufacturer code
+יצרן - Manufacturer
+ק.מחבר - Author code
+מחבר - Author
+ק.נושא - Subject code
+נושא - Subject
+אזל - Out of stock
+ברקוד - Barcode
+ברקוד-נ - Barcode-N (alternative)
+פמי.ר - PMI.R
+פמי.מ - PMI.M
+ת.פתיחה - Opening date
+ת.עדכון - Update date
+ת.מה.ראשונה - First edition date
 
 # מאגר הנתונים הבסיסי
 - לקטלוג שנבנה על ידי דאנאקוד נרצה להוסיף עמודות מידע משל עצמנו. לשם כך, בייבוא הראשוני של רשימת דאנאקוד,
@@ -81,6 +112,49 @@ Later on it would be uploaded it github .io website.
 ----
 מתאפשרת בחירה מרובה, כלומר ניתן לסמן כמה מצבים בו זמנית.
 כלל המצבים שסומנו יופיעו תחת השדה "הערות על מצב הספר".
+
+## operative books website
+This part describe how to implement the books catalog website.
+The implementation should be done locally in code and later submitted to github,
+at the locations mentioned in this document.
+Before each new implementation, check if code and databases already exists.
+If yes - check what it is and ask user what to do.
+If no, proceed with implementation.
+
+The books website in primary git folder would have three parts:
+1. Add danalog database
+This would let the user select excel file in the browser, and upload it into website danalog database.
+ - If there is no danalog database in website, 
+the website would upload the list as a new database, 
+where each row is a new record, and assign new "ID" field with rolling numbers to each new record.
+Each new record that is added should have "ID" value that is unique, 
+and not already in danalog database.
+- If there is already danalog Catalog in website, 
+the website would look if each record already exists in website by the "דאנאקוד" field.
+if the new record already exists - it would skip it.
+if the new record doesn't exists - it would add it to the website danalog catalog with a new "ID" unique number as mentioned before.
+
+2. Search website catalog 
+If danalog catalog existing in website, this part would allow to search for books.
+The search would be done by selecting the website Catalog Column, and then enther free text in the box next to it, then hit the "search" button.
+The website then would show all the books records that matches the search.
+
+The following fields are not important and would not be presented to the user for the records that are found:
+ש.לפריט
+ק.מחלקה
+מ.מיוחד
+מ.מיוחד1
+לימוד
+מאושר
+ק.יצרן
+יצרן
+ק.מחבר
+ק.נושא
+אזל
+ברקוד-נ
+פמי.ר
+פמי.מ
+
 
 
 
