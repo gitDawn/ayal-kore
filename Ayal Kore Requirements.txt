@@ -121,6 +121,9 @@ Before each new implementation, check if code and databases already exists.
 If yes - check what it is and ask user what to do.
 If no, proceed with implementation.
 
+All the code should run and be avialable at 
+https://gitdawn.github.io/ayal-kore/
+
 The books website in primary git folder would have three parts:
 1. Add danalog database
 This would let the user select excel file in the browser, and upload it into website danalog database.
