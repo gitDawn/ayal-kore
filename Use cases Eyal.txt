@@ -1,0 +1,41 @@
+Use cases for Eyal:
+
+1. standalone server - which database - SQL? Firebase? Relational database?
+What is the size limit of the database?
+
+2. Dan code contain books from the 1980 and on.
+How to merge this database into eyal database?
+
+3. how to update Dan code once new updates every year?
+
+4. how to add books to inventory?
+- if can scan barcode - check if the book exists: 
+show list of books that it finds - 
+Book title כותרת, Sub title תת כותרת, Author מחבר, Translator, publisher הוצאה:
+Show selection of the books that were found (only one, since it is barcode).
+Once selected: 
+show meta data of Eyal, relational database:
+הערות מצב ספר
+אם זה ממורקר עם סימונים בתוך ספר
+עוד סוגי הערות כמו הקדשה מאת הסופר, מהדורה נדירה וכו' 
+לבדוק עם איל איזה סוגי הערות
+אפשר אינסוף הערות לאותו ספר
+
+מצב מיוחד - עם הקדשה,
+זו תהיה רשימה נפרדת של ספרים
+
+5. In database - save מילות חיפוש, סוג
+
+6. עוד שדה של ספר - שם סדרה של הוצאה לאור, למשל "סדרת הרפתאות"
+מספר ספר בסדרה
+
+7. Show also 
+Book conditions - Poor, good, very good, As new
+
+איל - להביא את הדאטאבייס של ברקודים
+רשימת הערות מצב הספר
+רשימת הערות מיוחדים
+שחר - איפיון דאטאבייסים וממשקים
+מתקשר כשזה מוכן
+שרול - סורק ברקודים
+
