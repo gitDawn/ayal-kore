@@ -92,6 +92,91 @@
         </footer>
     </div>
 
+    <!-- Book Editor Modal -->
+    <div id="book-editor-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBookEditor()">&times;</span>
+            <h2>ערוך פרטי ספר - <span id="modal-book-name"></span></h2>
+            <p class="modal-subtitle">ID: <span id="modal-book-id"></span> | דאנאקוד: <span id="modal-danalog-code"></span></p>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('details', event)">פרטים נוספים</button>
+                <button class="tab-btn" onclick="showTab('inventory', event)">מלאי</button>
+                <button class="tab-btn" onclick="showTab('special', event)">עותקים מיוחדים</button>
+            </div>
+
+            <!-- Tab 1: Additional Details -->
+            <div id="tab-details" class="tab-content active">
+                <form id="details-form">
+                    <div class="form-row">
+                        <label>
+                            כותרת משנה:
+                            <input type="text" name="subtitle" placeholder="כותרת משנה לספר" />
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            מתרגם:
+                            <input type="text" name="translator" placeholder="שם המתרגם" />
+                        </label>
+                        <label>
+                            הוצאה לאור:
+                            <input type="text" name="publisher" placeholder="שם ההוצאה" />
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            שנה:
+                            <input type="number" name="year" placeholder="שנת הוצאה" min="1000" max="2100" />
+                        </label>
+                        <label>
+                            מספר עמודים:
+                            <input type="number" name="pages" placeholder="מספר עמודים" min="1" />
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            כריכה:
+                            <input type="text" name="binding" placeholder="רכה/קשה" />
+                        </label>
+                        <label>
+                            גודל:
+                            <input type="text" name="size" placeholder="גודל הספר" />
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label>
+                            שם סדרה:
+                            <input type="text" name="series_name" placeholder="שם הסדרה" />
+                        </label>
+                        <label>
+                            מספר בסדרה:
+                            <input type="number" name="number_in_series" placeholder="מספר בסדרה" min="1" />
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab 2: Inventory Management -->
+            <div id="tab-inventory" class="tab-content">
+                <div id="inventory-list"></div>
+                <button class="add-btn" onclick="addInventoryRow()">+ הוסף מצב</button>
+            </div>
+
+            <!-- Tab 3: Special Copies -->
+            <div id="tab-special" class="tab-content">
+                <div id="special-copies-list"></div>
+                <button class="add-btn" onclick="addSpecialCopy()">+ הוסף עותק מיוחד</button>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="saveBookData()">שמור</button>
+                <button class="btn-secondary" onclick="closeBookEditor()">ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

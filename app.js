@@ -2,7 +2,7 @@
 // This version works on GitHub Pages without a backend server
 
 const DB_NAME = 'AyalKoreCatalog';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Upgraded for book details, inventory, and special copies
 const STORE_NAME = 'danalog_catalog';
 
 let db = null;
@@ -21,7 +21,7 @@ function initDB() {
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
 
-            // Create object store if it doesn't exist
+            // Create main catalog store (version 1)
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 const objectStore = db.createObjectStore(STORE_NAME, {
                     keyPath: 'ID',
@@ -33,6 +33,32 @@ function initDB() {
                 objectStore.createIndex('שם', 'שם', { unique: false });
                 objectStore.createIndex('מחבר', 'מחבר', { unique: false });
                 objectStore.createIndex('נושא', 'נושא', { unique: false });
+            }
+
+            // Create new stores for version 2
+            if (event.oldVersion < 2) {
+                // Book details store - additional book information
+                if (!db.objectStoreNames.contains('book_details')) {
+                    db.createObjectStore('book_details', { keyPath: 'bookId' });
+                }
+
+                // Inventory store - stock levels by condition
+                if (!db.objectStoreNames.contains('inventory')) {
+                    const inventoryStore = db.createObjectStore('inventory', {
+                        keyPath: 'id',
+                        autoIncrement: true
+                    });
+                    inventoryStore.createIndex('bookId', 'bookId', { unique: false });
+                }
+
+                // Special copies store - individual special copies with unique pricing
+                if (!db.objectStoreNames.contains('special_copies')) {
+                    const specialStore = db.createObjectStore('special_copies', {
+                        keyPath: 'id',
+                        autoIncrement: true
+                    });
+                    specialStore.createIndex('bookId', 'bookId', { unique: false });
+                }
             }
         };
     });
@@ -268,6 +294,7 @@ function displayResults(results) {
     displayFields.forEach(field => {
         html += `<th>${field}</th>`;
     });
+    html += '<th>פעולות</th>'; // Actions column
 
     html += '</tr></thead><tbody>';
 
@@ -282,6 +309,10 @@ function displayResults(results) {
 
             html += `<td>${value}</td>`;
         });
+
+        // Add edit button
+        html += `<td><button onclick="openBookEditor(${row.ID})" style="padding: 8px 16px; font-size: 0.9em;">ערוך</button></td>`;
+
         html += '</tr>';
     });
 
@@ -390,6 +421,421 @@ async function clearDatabase() {
 function showStatus(element, message, type) {
     element.textContent = message;
     element.className = `status-message ${type}`;
+}
+
+// ========================================
+// Book Editor Modal Functions
+// ========================================
+
+let currentBookId = null;
+
+// Open book editor modal
+async function openBookEditor(bookId) {
+    currentBookId = bookId;
+
+    try {
+        // Load book data
+        const book = await getBookById(bookId);
+        const details = await getBookDetails(bookId);
+        const inventory = await getInventory(bookId);
+        const specialCopies = await getSpecialCopies(bookId);
+
+        // Populate modal header
+        document.getElementById('modal-book-name').textContent = book.שם || 'ללא שם';
+        document.getElementById('modal-book-id').textContent = book.ID;
+        document.getElementById('modal-danalog-code').textContent = book.דאנאקוד || 'ללא קוד';
+
+        // Populate tabs
+        populateDetailsForm(details);
+        populateInventoryList(inventory);
+        populateSpecialCopiesList(specialCopies);
+
+        // Show modal and activate first tab
+        document.getElementById('book-editor-modal').style.display = 'block';
+        showTab('details');
+
+    } catch (error) {
+        alert(`שגיאה בטעינת נתוני ספר: ${error.message}`);
+        console.error(error);
+    }
+}
+
+// Close book editor modal
+function closeBookEditor() {
+    document.getElementById('book-editor-modal').style.display = 'none';
+    currentBookId = null;
+}
+
+// Switch between tabs
+function showTab(tabName, event) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('book-editor-modal');
+    if (event.target === modal) {
+        closeBookEditor();
+    }
+};
+
+// ========================================
+// Data Retrieval Functions
+// ========================================
+
+// Get book by ID from main catalog
+async function getBookById(id) {
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(id);
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+            if (request.result) {
+                resolve(request.result);
+            } else {
+                reject(new Error('ספר לא נמצא'));
+            }
+        };
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Get book details (additional fields)
+async function getBookDetails(bookId) {
+    const transaction = db.transaction(['book_details'], 'readonly');
+    const store = transaction.objectStore('book_details');
+    const request = store.get(bookId);
+
+    return new Promise((resolve) => {
+        request.onsuccess = () => resolve(request.result || {});
+        request.onerror = () => resolve({});
+    });
+}
+
+// Get inventory for a book
+async function getInventory(bookId) {
+    const transaction = db.transaction(['inventory'], 'readonly');
+    const store = transaction.objectStore('inventory');
+    const index = store.index('bookId');
+    const request = index.getAll(bookId);
+
+    return new Promise((resolve) => {
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => resolve([]);
+    });
+}
+
+// Get special copies for a book
+async function getSpecialCopies(bookId) {
+    const transaction = db.transaction(['special_copies'], 'readonly');
+    const store = transaction.objectStore('special_copies');
+    const index = store.index('bookId');
+    const request = index.getAll(bookId);
+
+    return new Promise((resolve) => {
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => resolve([]);
+    });
+}
+
+// ========================================
+// Details Form Functions
+// ========================================
+
+// Populate details form with existing data
+function populateDetailsForm(details) {
+    const form = document.getElementById('details-form');
+
+    form.elements['subtitle'].value = details.כותרת_משנה || '';
+    form.elements['translator'].value = details.מתרגם || '';
+    form.elements['publisher'].value = details.הוצאה_לאור || '';
+    form.elements['year'].value = details.שנה || '';
+    form.elements['pages'].value = details.מספר_עמודים || '';
+    form.elements['binding'].value = details.כריכה || '';
+    form.elements['size'].value = details.גודל || '';
+    form.elements['series_name'].value = details.שם_סדרה || '';
+    form.elements['number_in_series'].value = details.מספר_בסדרה || '';
+}
+
+// Save book details
+async function saveBookDetails(bookId) {
+    const form = document.getElementById('details-form');
+
+    const details = {
+        bookId: bookId,
+        כותרת_משנה: form.elements['subtitle'].value.trim(),
+        מתרגם: form.elements['translator'].value.trim(),
+        הוצאה_לאור: form.elements['publisher'].value.trim(),
+        שנה: form.elements['year'].value ? parseInt(form.elements['year'].value) : null,
+        מספר_עמודים: form.elements['pages'].value ? parseInt(form.elements['pages'].value) : null,
+        כריכה: form.elements['binding'].value.trim(),
+        גודל: form.elements['size'].value.trim(),
+        שם_סדרה: form.elements['series_name'].value.trim(),
+        מספר_בסדרה: form.elements['number_in_series'].value ? parseInt(form.elements['number_in_series'].value) : null
+    };
+
+    const transaction = db.transaction(['book_details'], 'readwrite');
+    const store = transaction.objectStore('book_details');
+
+    return new Promise((resolve, reject) => {
+        const request = store.put(details);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// ========================================
+// Inventory Management Functions
+// ========================================
+
+// Populate inventory list
+function populateInventoryList(inventory) {
+    const container = document.getElementById('inventory-list');
+    container.innerHTML = '';
+
+    inventory.forEach((item, index) => {
+        const rowId = `existing-${index}`;
+        addInventoryRow(rowId, item.מצב, item.כמות, item.מחיר);
+    });
+
+    // Add one empty row if there's no inventory
+    if (inventory.length === 0) {
+        addInventoryRow();
+    }
+}
+
+// Add inventory row
+function addInventoryRow(rowId = null, condition = '', quantity = '', price = '') {
+    const container = document.getElementById('inventory-list');
+    const id = rowId || `new-${Date.now()}`;
+
+    const rowHtml = `
+        <div class="inventory-row" data-row-id="${id}">
+            <select name="condition-${id}">
+                <option value="">-- בחר מצב --</option>
+                <option value="חדש" ${condition === 'חדש' ? 'selected' : ''}>חדש</option>
+                <option value="מצוין / כחדש" ${condition === 'מצוין / כחדש' ? 'selected' : ''}>מצוין / כחדש</option>
+                <option value="טוב" ${condition === 'טוב' ? 'selected' : ''}>טוב</option>
+                <option value="בינוני" ${condition === 'בינוני' ? 'selected' : ''}>בינוני</option>
+            </select>
+            <input type="number" name="quantity-${id}" placeholder="כמות" min="0" value="${quantity}" />
+            <input type="number" name="price-${id}" placeholder="מחיר" step="0.01" min="0" value="${price}" />
+            <button onclick="removeInventoryRow('${id}')">מחק</button>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+// Remove inventory row
+function removeInventoryRow(rowId) {
+    const row = document.querySelector(`[data-row-id="${rowId}"]`);
+    if (row) row.remove();
+}
+
+// Save inventory
+async function saveInventory(bookId) {
+    const transaction = db.transaction(['inventory'], 'readwrite');
+    const store = transaction.objectStore('inventory');
+    const index = store.index('bookId');
+
+    // Delete existing inventory for this book
+    const existing = await new Promise((resolve) => {
+        const request = index.getAll(bookId);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => resolve([]);
+    });
+
+    for (const item of existing) {
+        await new Promise((resolve) => {
+            const request = store.delete(item.id);
+            request.onsuccess = () => resolve();
+            request.onerror = () => resolve();
+        });
+    }
+
+    // Add new inventory rows
+    const rows = document.querySelectorAll('.inventory-row');
+    for (const row of rows) {
+        const rowId = row.dataset.rowId;
+        const condition = row.querySelector(`[name="condition-${rowId}"]`).value;
+        const quantity = parseInt(row.querySelector(`[name="quantity-${rowId}"]`).value) || 0;
+        const price = parseFloat(row.querySelector(`[name="price-${rowId}"]`).value) || 0;
+
+        if (condition && quantity > 0) {
+            await new Promise((resolve, reject) => {
+                const request = store.add({
+                    bookId: bookId,
+                    מצב: condition,
+                    כמות: quantity,
+                    מחיר: price
+                });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+    }
+}
+
+// ========================================
+// Special Copies Management Functions
+// ========================================
+
+// Populate special copies list
+function populateSpecialCopiesList(specialCopies) {
+    const container = document.getElementById('special-copies-list');
+    container.innerHTML = '';
+
+    specialCopies.forEach((copy, index) => {
+        const copyId = `existing-${index}`;
+        addSpecialCopy(copyId, copy.מחיר, copy.הערות_מיוחדות, copy.condition_notes || []);
+    });
+
+    // Add empty message if no special copies
+    if (specialCopies.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">אין עותקים מיוחדים. לחץ "הוסף עותק מיוחד" להוספה.</p>';
+    }
+}
+
+// Add special copy
+function addSpecialCopy(copyId = null, price = '', notes = '', conditionNotes = []) {
+    const container = document.getElementById('special-copies-list');
+    const id = copyId || `new-${Date.now()}`;
+
+    // Remove empty message if it exists
+    const emptyMsg = container.querySelector('p');
+    if (emptyMsg) emptyMsg.remove();
+
+    const hasMarkings = conditionNotes.includes('סימונים / מרקורים');
+    const hasSpine = conditionNotes.includes('שדרה מודבקת');
+    const hasRust = conditionNotes.includes('כתמי חלודה');
+
+    const rowHtml = `
+        <div class="special-copy-row" data-copy-id="${id}">
+            <h4>עותק מיוחד</h4>
+            <label>
+                מחיר:
+                <input type="number" name="special-price-${id}" step="0.01" min="0" value="${price}" />
+            </label>
+            <label>
+                הערות מיוחדות:
+                <textarea name="special-notes-${id}">${notes}</textarea>
+            </label>
+            <fieldset>
+                <legend>הערות על מצב הספר:</legend>
+                <label><input type="checkbox" name="condition-markings-${id}" ${hasMarkings ? 'checked' : ''} /> סימונים / מרקורים</label>
+                <label><input type="checkbox" name="condition-spine-${id}" ${hasSpine ? 'checked' : ''} /> שדרה מודבקת</label>
+                <label><input type="checkbox" name="condition-rust-${id}" ${hasRust ? 'checked' : ''} /> כתמי חלודה</label>
+            </fieldset>
+            <button onclick="removeSpecialCopy('${id}')">מחק עותק</button>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+// Remove special copy
+function removeSpecialCopy(copyId) {
+    const row = document.querySelector(`[data-copy-id="${copyId}"]`);
+    if (row) row.remove();
+
+    // Show empty message if no copies left
+    const container = document.getElementById('special-copies-list');
+    if (container.children.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">אין עותקים מיוחדים. לחץ "הוסף עותק מיוחד" להוספה.</p>';
+    }
+}
+
+// Save special copies
+async function saveSpecialCopies(bookId) {
+    const transaction = db.transaction(['special_copies'], 'readwrite');
+    const store = transaction.objectStore('special_copies');
+    const index = store.index('bookId');
+
+    // Delete existing special copies
+    const existing = await new Promise((resolve) => {
+        const request = index.getAll(bookId);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => resolve([]);
+    });
+
+    for (const item of existing) {
+        await new Promise((resolve) => {
+            const request = store.delete(item.id);
+            request.onsuccess = () => resolve();
+            request.onerror = () => resolve();
+        });
+    }
+
+    // Add new special copies
+    const rows = document.querySelectorAll('.special-copy-row');
+    for (const row of rows) {
+        const copyId = row.dataset.copyId;
+        const price = parseFloat(row.querySelector(`[name="special-price-${copyId}"]`).value) || 0;
+        const notes = row.querySelector(`[name="special-notes-${copyId}"]`).value.trim();
+
+        const conditionNotes = [];
+        if (row.querySelector(`[name="condition-markings-${copyId}"]`).checked) {
+            conditionNotes.push('סימונים / מרקורים');
+        }
+        if (row.querySelector(`[name="condition-spine-${copyId}"]`).checked) {
+            conditionNotes.push('שדרה מודבקת');
+        }
+        if (row.querySelector(`[name="condition-rust-${copyId}"]`).checked) {
+            conditionNotes.push('כתמי חלודה');
+        }
+
+        if (price > 0 || notes || conditionNotes.length > 0) {
+            await new Promise((resolve, reject) => {
+                const request = store.add({
+                    bookId: bookId,
+                    מחיר: price,
+                    הערות_מיוחדות: notes,
+                    condition_notes: conditionNotes
+                });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+    }
+}
+
+// ========================================
+// Save All Book Data
+// ========================================
+
+async function saveBookData() {
+    if (!currentBookId) {
+        alert('שגיאה: לא נבחר ספר');
+        return;
+    }
+
+    try {
+        // Save all three sections
+        await saveBookDetails(currentBookId);
+        await saveInventory(currentBookId);
+        await saveSpecialCopies(currentBookId);
+
+        alert('הנתונים נשמרו בהצלחה!');
+        closeBookEditor();
+
+    } catch (error) {
+        alert(`שגיאה בשמירת נתונים: ${error.message}`);
+        console.error(error);
+    }
 }
 
 // Initialize on page load
