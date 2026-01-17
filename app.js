@@ -74,6 +74,17 @@ async function uploadDanalog() {
         return;
     }
 
+    // Ensure database is initialized
+    if (!db) {
+        showStatus(statusDiv, 'מאתחל מסד נתונים...', 'info');
+        try {
+            await initDB();
+        } catch (error) {
+            showStatus(statusDiv, `שגיאה באתחול מסד נתונים: ${error.message}`, 'error');
+            return;
+        }
+    }
+
     const file = fileInput.files[0];
 
     try {
@@ -191,6 +202,12 @@ async function searchCatalog() {
 
     if (!searchText.trim()) {
         showStatus(statusDiv, 'אנא הזן טקסט לחיפוש', 'error');
+        return;
+    }
+
+    // Ensure database is initialized
+    if (!db) {
+        showStatus(statusDiv, 'מסד הנתונים לא מאותחל. אנא רענן את הדף.', 'error');
         return;
     }
 
