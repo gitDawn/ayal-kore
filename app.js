@@ -66,44 +66,68 @@ async function uploadDanalog() {
 
         showStatus(statusDiv, `מעבד ${jsonData.length} רשומות...`, 'info');
 
-        // Add records to IndexedDB
+        // Process records in batches to avoid freezing the browser
+        const BATCH_SIZE = 50; // Process 50 records at a time
         let added = 0;
         let skipped = 0;
+        let processed = 0;
 
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const objectStore = transaction.objectStore(STORE_NAME);
+        // Process in batches
+        for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
+            const batch = jsonData.slice(i, i + BATCH_SIZE);
 
-        for (const row of jsonData) {
-            const danalogCode = row['דאנאקוד'];
+            // Process this batch
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const objectStore = transaction.objectStore(STORE_NAME);
 
-            // Check if record already exists
-            if (danalogCode) {
-                const index = objectStore.index('דאנאקוד');
-                const existingRequest = index.get(danalogCode);
+            for (const row of batch) {
+                const danalogCode = row['דאנאקוד'];
 
-                const exists = await new Promise((resolve) => {
-                    existingRequest.onsuccess = () => resolve(existingRequest.result);
-                    existingRequest.onerror = () => resolve(null);
-                });
+                // Check if record already exists
+                if (danalogCode) {
+                    const index = objectStore.index('דאנאקוד');
+                    const existingRequest = index.get(danalogCode);
 
-                if (exists) {
-                    skipped++;
-                    continue;
+                    const exists = await new Promise((resolve) => {
+                        existingRequest.onsuccess = () => resolve(existingRequest.result);
+                        existingRequest.onerror = () => resolve(null);
+                    });
+
+                    if (exists) {
+                        skipped++;
+                        processed++;
+                        continue;
+                    }
                 }
+
+                // Add new record (ID will be auto-generated)
+                const addRequest = objectStore.add(row);
+                await new Promise((resolve, reject) => {
+                    addRequest.onsuccess = () => {
+                        added++;
+                        processed++;
+                        resolve();
+                    };
+                    addRequest.onerror = () => reject(addRequest.error);
+                });
             }
 
-            // Add new record (ID will be auto-generated)
-            const addRequest = objectStore.add(row);
-            await new Promise((resolve, reject) => {
-                addRequest.onsuccess = () => {
-                    added++;
-                    resolve();
-                };
-                addRequest.onerror = () => reject(addRequest.error);
+            // Wait for transaction to complete
+            await new Promise((resolve) => {
+                transaction.oncomplete = () => resolve();
             });
+
+            // Update progress and yield to browser
+            const progress = Math.round((processed / jsonData.length) * 100);
+            showStatus(statusDiv, `מעבד ${processed} מתוך ${jsonData.length} רשומות (${progress}%)...`, 'info');
+
+            // Yield to browser to prevent freezing
+            await new Promise(resolve => setTimeout(resolve, 0));
         }
 
         // Get total count
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const objectStore = transaction.objectStore(STORE_NAME);
         const countRequest = objectStore.count();
         const total = await new Promise((resolve) => {
             countRequest.onsuccess = () => resolve(countRequest.result);
