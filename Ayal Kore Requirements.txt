@@ -147,6 +147,10 @@ If danalog catalog existing in website, this part would allow to search for book
 The search would be done by selecting the website Catalog Column, and then enther free text in the box next to it, then hit the "search" button.
 The website then would show all the books records that matches the search.
 
+When showing the search results, 
+limit show results to 5 results, 
+and user can use vertical scroll bar to see more results.
+
 The following fields are not important and would not be presented to the user for the records that are found:
 ש.לפריט
 ק.מחלקה
