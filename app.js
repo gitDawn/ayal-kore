@@ -107,7 +107,7 @@ async function uploadDanalog() {
 
         // Read Excel file using SheetJS
         const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array', sheetRows: 200000 }); // Limit to 200K rows to prevent memory issues
+        const workbook = XLSX.read(data, { type: 'array', sheetRows: 300000 }); // Limit to 300K rows to prevent memory issues
 
         // Get first sheet
         const firstSheetName = workbook.SheetNames[0];
@@ -117,8 +117,8 @@ async function uploadDanalog() {
         if (worksheet['!fullref']) {
             const range = XLSX.utils.decode_range(worksheet['!fullref']);
             const totalRows = range.e.r + 1; // +1 because row index is 0-based
-            if (totalRows > 200000) {
-                showStatus(statusDiv, `⚠️ אזהרה: הקובץ מכיל ${totalRows.toLocaleString('he-IL')} שורות. מעבד רק 200,000 שורות ראשונות...`, 'info');
+            if (totalRows > 300000) {
+                showStatus(statusDiv, `⚠️ אזהרה: הקובץ מכיל ${totalRows.toLocaleString('he-IL')} שורות. מעבד רק 300,000 שורות ראשונות...`, 'info');
             } else if (totalRows > 50000) {
                 showStatus(statusDiv, `מעבד קובץ גדול עם ${totalRows.toLocaleString('he-IL')} שורות...`, 'info');
             }
@@ -336,17 +336,23 @@ function displayResults(results) {
 
     let html = '<table><thead><tr>';
 
+    // Actions column first
+    html += '<th>פעולות</th>';
+
     // Table headers
     displayFields.forEach(field => {
         html += `<th>${field}</th>`;
     });
-    html += '<th>פעולות</th>'; // Actions column
 
     html += '</tr></thead><tbody>';
 
     // Table rows
     results.forEach(row => {
         html += '<tr>';
+
+        // Add edit button first
+        html += `<td><button onclick="openBookEditor(${row.ID})" style="padding: 8px 16px; font-size: 0.9em;">ערוך</button></td>`;
+
         displayFields.forEach(field => {
             let value = row[field] !== null && row[field] !== undefined ? row[field] : '';
 
@@ -355,9 +361,6 @@ function displayResults(results) {
 
             html += `<td>${value}</td>`;
         });
-
-        // Add edit button
-        html += `<td><button onclick="openBookEditor(${row.ID})" style="padding: 8px 16px; font-size: 0.9em;">ערוך</button></td>`;
 
         html += '</tr>';
     });
