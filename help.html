@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מדריך שימוש - קטלוג ספרים האיל הקורא</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .back-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .toc h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .section {
+            margin: 40px 0;
+            padding: 20px 0;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin: 25px 0 15px;
+        }
+
+        h4 {
+            color: #667eea;
+            font-size: 1.2em;
+            margin: 20px 0 10px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-right: 25px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-right: 4px solid #0c5460;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box {
+            background: #f8d7da;
+            border-right: 4px solid #721c24;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-right: 4px solid #155724;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-right: 3px solid #667eea;
+        }
+
+        .faq-item {
+            margin: 25px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .faq-question {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .faq-answer {
+            color: #333;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 מדריך שימוש</h1>
+            <p style="font-size: 1.2em; margin-top: 10px;">מערכת קטלוג ספרים - האיל הקורא</p>
+            <a href="index.html" class="back-link">← חזרה לאתר הראשי</a>
+        </header>
+
+        <div class="content">
+            <!-- Table of Contents -->
+            <div class="toc">
+                <h2>תוכן עניינים</h2>
+                <ul>
+                    <li><a href="#intro">מבוא</a></li>
+                    <li><a href="#upload-first">העלאת קטלוג דאנאלוג לראשונה</a></li>
+                    <li><a href="#upload-update">עדכון הקטלוג עם ספרים חדשים</a></li>
+                    <li><a href="#search">חיפוש ספרים בקטלוג</a></li>
+                    <li><a href="#edit">עריכת פרטי ספר</a></li>
+                    <li><a href="#inventory">ניהול מלאי ספרים</a></li>
+                    <li><a href="#special">ניהול עותקים מיוחדים</a></li>
+                    <li><a href="#export">ייצוא וגיבוי נתונים</a></li>
+                    <li><a href="#delete">מחיקת נתונים</a></li>
+                    <li><a href="#faq">שאלות נפוצות</a></li>
+                </ul>
+            </div>
+
+            <!-- Introduction -->
+            <div class="section" id="intro">
+                <h2>מבוא</h2>
+                <p>מערכת קטלוג הספרים של האיל הקורא היא מערכת מקוונת לניהול מלאי ספרים משומשים. המערכת פועלת ישירות בדפדפן ושומרת את כל המידע <strong>במחשב שלכם</strong> (אין צורך בשרת או אינטרנט לשימוש יומיומי).</p>
+
+                <h3>מה שחשוב לדעת:</h3>
+                <div class="success-box">
+                    <ul>
+                        <li>✅ הנתונים נשמרים <strong>במחשב שלכם</strong> בלבד (לא בענן)</li>
+                        <li>✅ המערכת תומכת בקבצי Excel של דאנאלוג</li>
+                        <li>✅ ניתן לנהל עד <strong>300,000 ספרים</strong></li>
+                    </ul>
+                </div>
+
+                <div class="warning-box">
+                    <ul>
+                        <li>⚠️ <strong>חשוב:</strong> יש לגבות את הנתונים מעת לעת</li>
+                        <li>⚠️ אל תנקו את המטמון (Cache) של הדפדפן - זה ימחק את הנתונים!</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Upload First Time -->
+            <div class="section" id="upload-first">
+                <h2>העלאת קטלוג דאנאלוג לראשונה</h2>
+
+                <h3>שלב 1: הכנת קובץ Excel</h3>
+                <ol>
+                    <li>ודאו שיש לכם קובץ Excel של דאנאלוג</li>
+                    <li>הקובץ צריך לכלול את העמודות הבאות: דאנאקוד, שם, מחבר, נושא, מחיר, ועוד</li>
+                </ol>
+
+                <h3>שלב 2: העלאת הקובץ</h3>
+                <ol>
+                    <li>בחלק <strong>"1. העלאת קטלוג דאנאלוג"</strong></li>
+                    <li>לחצו על <strong>"Choose File"</strong> או <strong>"בחר קובץ"</strong></li>
+                    <li>בחרו את קובץ ה-Excel של דאנאלוג</li>
+                    <li>לחצו על כפתור <strong>"העלה קטלוג"</strong></li>
+                </ol>
+
+                <div class="info-box">
+                    <h4>מה קורה עכשיו?</h4>
+                    <ul>
+                        <li>המערכת קוראת את הקובץ (עשוי לקחת דקה לקבצים גדולים)</li>
+                        <li>תראו הודעה: "מעבד X רשומות..."</li>
+                        <li>כל ספר מקבל מספר זיהוי (ID) ייחודי</li>
+                        <li>בסיום: "הקובץ הועלה בהצלחה!"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Update Catalog -->
+            <div class="section" id="upload-update">
+                <h2>עדכון הקטלוג עם ספרים חדשים</h2>
+                <p>כאשר אתם מקבלים קובץ דאנאלוג מעודכן:</p>
+                <ol>
+                    <li>העלו את הקובץ החדש בדיוק כמו בפעם הראשונה</li>
+                    <li><strong>המערכת חכמה!</strong> היא תבדוק אילו ספרים כבר קיימים</li>
+                    <li>תדלג על ספרים קיימים</li>
+                    <li>תוסיף רק ספרים חדשים</li>
+                </ol>
+
+                <div class="success-box">
+                    <strong>טיפ:</strong> אתם יכולים להעלות את אותו קובץ כמה פעמים ללא חשש - ספרים לא יוכפלו!
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="section" id="search">
+                <h2>חיפוש ספרים בקטלוג</h2>
+
+                <h3>איך מחפשים?</h3>
+                <ol>
+                    <li>בחלק <strong>"2. חיפוש בקטלוג"</strong></li>
+                    <li><strong>בחרו שדה לחיפוש</strong> מהרשימה הנפתחת (שם הספר, מחבר, דאנאקוד, וכו')</li>
+                    <li><strong>הקלידו טקסט לחיפוש</strong></li>
+                    <li>לחצו <strong>"חפש"</strong></li>
+                </ol>
+
+                <h3>דוגמאות לחיפוש:</h3>
+                <div class="example">
+                    <ul>
+                        <li><strong>חיפוש לפי שם:</strong> בחרו "שם הספר", הקלידו "שלום"</li>
+                        <li><strong>חיפוש לפי מחבר:</strong> בחרו "מחבר", הקלידו "עמוס עוז"</li>
+                        <li><strong>חיפוש לפי דאנאקוד:</strong> בחרו "דאנאקוד", הקלידו "101-10541"</li>
+                    </ul>
+                </div>
+
+                <h3>תוצאות החיפוש</h3>
+                <ul>
+                    <li>תקבלו טבלה עם כל הספרים שנמצאו</li>
+                    <li>הטבלה מציגה את השדות החשובים בלבד</li>
+                    <li>גללו בטבלה אנכית ואופקית לראות את כל הנתונים</li>
+                    <li><strong>כפתור "ערוך"</strong> מופיע בכל שורה</li>
+                </ul>
+            </div>
+
+            <!-- Edit Book -->
+            <div class="section" id="edit">
+                <h2>עריכת פרטי ספר</h2>
+
+                <h3>פתיחת חלון העריכה</h3>
+                <ol>
+                    <li>חפשו את הספר</li>
+                    <li>לחצו על כפתור <strong>"ערוך"</strong> ליד הספר</li>
+                    <li>ייפתח חלון עריכה עם 3 לשוניות</li>
+                </ol>
+
+                <h3>לשונית 1: פרטים נוספים</h3>
+                <p>הוסיפו מידע נוסף שלא קיים בקטלוג דאנאלוג המקורי:</p>
+                <ul>
+                    <li>כותרת משנה</li>
+                    <li>מתרגם</li>
+                    <li>הוצאה לאור</li>
+                    <li>שנה</li>
+                    <li>מספר עמודים</li>
+                    <li>כריכה (רכה/קשה)</li>
+                    <li>גודל</li>
+                    <li>שם סדרה ומספר בסדרה</li>
+                </ul>
+
+                <div class="info-box">
+                    מלאו את השדות הרצויים ולחצו <strong>"שמור"</strong> בתחתית החלון
+                </div>
+            </div>
+
+            <!-- Inventory -->
+            <div class="section" id="inventory">
+                <h2>ניהול מלאי ספרים</h2>
+
+                <h3>מהו מלאי?</h3>
+                <p>לכל ספר יכולים להיות כמה עותקים במצבים שונים, ולכל מצב מחיר שונה.</p>
+
+                <div class="example">
+                    <strong>דוגמה:</strong><br>
+                    לספר "הארי פוטר" יש:
+                    <ul>
+                        <li>3 עותקים במצב <strong>טוב</strong> - מחיר 20 ש"ח לעותק</li>
+                        <li>1 עותק במצב <strong>בינוני</strong> - מחיר 10 ש"ח</li>
+                    </ul>
+                </div>
+
+                <h3>מצבי ספר זמינים:</h3>
+                <ul>
+                    <li>חדש</li>
+                    <li>מצוין / כחדש</li>
+                    <li>טוב</li>
+                    <li>בינוני</li>
+                </ul>
+
+                <h3>איך להוסיף מלאי?</h3>
+                <ol>
+                    <li>לחצו על לשונית <strong>"מלאי"</strong></li>
+                    <li>לחצו <strong>"+ הוסף מצב"</strong> (כפתור ירוק)</li>
+                    <li>בחרו <strong>מצב</strong>, <strong>כמות</strong> ו<strong>מחיר</strong></li>
+                    <li>ניתן להוסיף מספר מצבים</li>
+                    <li>לחצו <strong>"שמור"</strong></li>
+                </ol>
+            </div>
+
+            <!-- Special Copies -->
+            <div class="section" id="special">
+                <h2>ניהול עותקים מיוחדים</h2>
+
+                <h3>מתי להשתמש בעותקים מיוחדים?</h3>
+                <ul>
+                    <li>ספרים נדירים</li>
+                    <li>ספרים עם הקדשה</li>
+                    <li>ספרים בעלי ערך מיוחד</li>
+                    <li>ספרים עם נזק ספציפי</li>
+                </ul>
+
+                <h3>איך להוסיף עותק מיוחד?</h3>
+                <ol>
+                    <li>לחצו על לשונית <strong>"עותקים מיוחדים"</strong></li>
+                    <li>לחצו <strong>"+ הוסף עותק מיוחד"</strong></li>
+                    <li>מלאו מחיר והערות מיוחדות</li>
+                    <li>סמנו הערות על מצב הספר:
+                        <ul>
+                            <li>☐ סימונים / מרקורים</li>
+                            <li>☐ שדרה מודבקת</li>
+                            <li>☐ כתמי חלודה</li>
+                        </ul>
+                    </li>
+                    <li>לחצו <strong>"שמור"</strong></li>
+                </ol>
+            </div>
+
+            <!-- Export -->
+            <div class="section" id="export">
+                <h2>ייצוא וגיבוי נתונים</h2>
+
+                <h3>למה חשוב לגבות?</h3>
+                <div class="warning-box">
+                    <p><strong>הנתונים שלכם נשמרים במחשב המקומי.</strong> אם תנקו את המטמון, תתקינו מחדש את הדפדפן, או יהיה תקלה - <strong>הנתונים יאבדו!</strong></p>
+                </div>
+
+                <h3>איך לייצא נתונים?</h3>
+                <ol>
+                    <li>בחלק <strong>"ניהול מסד נתונים"</strong></li>
+                    <li>לחצו <strong>"ייצא נתונים (JSON)"</strong> (כפתור ירוק)</li>
+                    <li>קובץ JSON יורד למחשב שלכם</li>
+                    <li>שמרו את הקובץ במקום בטוח</li>
+                </ol>
+
+                <div class="success-box">
+                    <strong>טיפ:</strong> כדאי לייצא את הנתונים:
+                    <ul>
+                        <li>אחרי כל העלאה של קובץ דאנאלוג חדש</li>
+                        <li>אחרי הוספה/עריכה של הרבה ספרים</li>
+                        <li>לפחות פעם בשבוע</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Delete -->
+            <div class="section" id="delete">
+                <h2>מחיקת נתונים</h2>
+
+                <div class="warning-box">
+                    <h3>⚠️ אזהרה - פעולה בלתי הפיכה!</h3>
+                    <p>מחיקת נתונים תמחק את <strong>כל המידע</strong> מהמערכת ללא אפשרות שחזור.</p>
+                </div>
+
+                <h3>איך למחוק?</h3>
+                <ol>
+                    <li>לחצו <strong>"מחק את כל הנתונים"</strong> (כפתור אדום)</li>
+                    <li>תקבלו אישור</li>
+                    <li>לחצו <strong>"אישור"</strong> רק אם אתם בטוחים!</li>
+                </ol>
+
+                <div class="warning-box">
+                    <strong>טיפ:</strong> לפני מחיקה - <strong>תמיד ייצאו גיבוי!</strong>
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="section" id="faq">
+                <h2>שאלות נפוצות</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: כמה ספרים אפשר להעלות למערכת?</div>
+                    <div class="faq-answer"><strong>ת:</strong> עד 300,000 ספרים.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: מה קורה אם אני מעלה אותו קובץ פעמיים?</div>
+                    <div class="faq-answer"><strong>ת:</strong> המערכת תזהה שהספרים כבר קיימים ותדלג עליהם. לא יווצרו כפילויות.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: איפה הנתונים שלי נשמרים?</div>
+                    <div class="faq-answer"><strong>ת:</strong> בדפדפן שלכם, במה שנקרא IndexedDB. זה מאגר נתונים מקומי בתוך הדפדפן.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: מה קורה אם אני מנקה את ההיסטוריה של הדפדפן?</div>
+                    <div class="faq-answer">
+                        <strong>ת:</strong> תלוי באיזה אפשרויות ניקוי:
+                        <ul>
+                            <li>✅ ניקוי היסטוריה - בטוח</li>
+                            <li>✅ ניקוי עוגיות - בטוח</li>
+                            <li>❌ ניקוי Cache/Storage - ימחק את הנתונים!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: למה אני לא רואה את השינויים החדשים?</div>
+                    <div class="faq-answer"><strong>ת:</strong> נסו לרענן את הדף בעזרת <strong>Ctrl + Shift + R</strong> (רענון קשה).</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: מה ההבדל בין "מלאי" ל"עותקים מיוחדים"?</div>
+                    <div class="faq-answer">
+                        <strong>ת:</strong>
+                        <ul>
+                            <li><strong>מלאי</strong> = כמה עותקים יש במצב מסוים, כולם באותו מחיר</li>
+                            <li><strong>עותקים מיוחדים</strong> = עותק בודד עם מחיר ייחודי</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">ש: האם המערכת עובדת ללא אינטרנט?</div>
+                    <div class="faq-answer"><strong>ת:</strong> כן! לאחר שהאתר נטען פעם אחת, אתם יכולים לעבוד offline.</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>מערכת ניהול קטלוג ספרים - האיל הקורא &copy; 2026</p>
+            <p style="margin-top: 10px;"><a href="index.html" style="color: white; text-decoration: underline;">חזרה לאתר הראשי</a></p>
+        </footer>
+    </div>
+</body>
+</html>
