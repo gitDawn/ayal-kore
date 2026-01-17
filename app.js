@@ -64,65 +64,69 @@ async function uploadDanalog() {
         // Convert to JSON
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+        showStatus(statusDiv, `טוען ${jsonData.length} רשומות...`, 'info');
+
+        // First, get all existing danalog codes for fast duplicate checking
+        showStatus(statusDiv, 'בודק רשומות קיימות...', 'info');
+        const existingCodes = new Set();
+
+        const readTransaction = db.transaction([STORE_NAME], 'readonly');
+        const readStore = readTransaction.objectStore(STORE_NAME);
+        const getAllRequest = readStore.getAll();
+
+        const existingRecords = await new Promise((resolve) => {
+            getAllRequest.onsuccess = () => resolve(getAllRequest.result || []);
+            getAllRequest.onerror = () => resolve([]);
+        });
+
+        existingRecords.forEach(record => {
+            if (record['דאנאקוד']) {
+                existingCodes.add(record['דאנאקוד']);
+            }
+        });
+
         showStatus(statusDiv, `מעבד ${jsonData.length} רשומות...`, 'info');
 
-        // Process records in batches to avoid freezing the browser
-        const BATCH_SIZE = 50; // Process 50 records at a time
+        // Filter out duplicates first
+        const newRecords = jsonData.filter(row => {
+            const code = row['דאנאקוד'];
+            return !code || !existingCodes.has(code);
+        });
+
+        const skipped = jsonData.length - newRecords.length;
         let added = 0;
-        let skipped = 0;
-        let processed = 0;
 
-        // Process in batches
-        for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
-            const batch = jsonData.slice(i, i + BATCH_SIZE);
+        // Process new records in batches
+        const BATCH_SIZE = 100; // Larger batches for better performance
 
-            // Process this batch
+        for (let i = 0; i < newRecords.length; i += BATCH_SIZE) {
+            const batch = newRecords.slice(i, Math.min(i + BATCH_SIZE, newRecords.length));
+
+            // Add batch to database
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const objectStore = transaction.objectStore(STORE_NAME);
 
             for (const row of batch) {
-                const danalogCode = row['דאנאקוד'];
-
-                // Check if record already exists
-                if (danalogCode) {
-                    const index = objectStore.index('דאנאקוד');
-                    const existingRequest = index.get(danalogCode);
-
-                    const exists = await new Promise((resolve) => {
-                        existingRequest.onsuccess = () => resolve(existingRequest.result);
-                        existingRequest.onerror = () => resolve(null);
-                    });
-
-                    if (exists) {
-                        skipped++;
-                        processed++;
-                        continue;
-                    }
-                }
-
-                // Add new record (ID will be auto-generated)
-                const addRequest = objectStore.add(row);
-                await new Promise((resolve, reject) => {
-                    addRequest.onsuccess = () => {
-                        added++;
-                        processed++;
-                        resolve();
-                    };
-                    addRequest.onerror = () => reject(addRequest.error);
-                });
+                objectStore.add(row);
             }
 
             // Wait for transaction to complete
-            await new Promise((resolve) => {
-                transaction.oncomplete = () => resolve();
+            await new Promise((resolve, reject) => {
+                transaction.oncomplete = () => {
+                    added += batch.length;
+                    resolve();
+                };
+                transaction.onerror = () => reject(transaction.error);
             });
 
-            // Update progress and yield to browser
-            const progress = Math.round((processed / jsonData.length) * 100);
-            showStatus(statusDiv, `מעבד ${processed} מתוך ${jsonData.length} רשומות (${progress}%)...`, 'info');
+            // Update progress
+            const progress = Math.round((added / newRecords.length) * 100);
+            showStatus(statusDiv,
+                `מעבד ${added} מתוך ${newRecords.length} רשומות חדשות (${progress}%)...`,
+                'info');
 
-            // Yield to browser to prevent freezing
-            await new Promise(resolve => setTimeout(resolve, 0));
+            // Yield to browser to keep it responsive
+            await new Promise(resolve => setTimeout(resolve, 10));
         }
 
         // Get total count
