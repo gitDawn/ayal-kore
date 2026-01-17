@@ -12,9 +12,24 @@ function initDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+            console.error('IndexedDB error:', request.error);
+            reject(request.error);
+        };
+
         request.onsuccess = () => {
             db = request.result;
+
+            // Handle database connection close/error
+            db.onclose = () => {
+                console.warn('Database connection closed');
+                db = null;
+            };
+
+            db.onerror = (event) => {
+                console.error('Database error:', event);
+            };
+
             resolve(db);
         };
 
@@ -92,14 +107,17 @@ async function uploadDanalog() {
 
         // Read Excel file using SheetJS
         const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', sheetRows: 50000 }); // Limit to 50K rows to prevent memory issues
 
         // Get first sheet
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        // Convert to JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        // Convert to JSON (only non-empty rows)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            defval: null,
+            blankrows: false  // Skip blank rows
+        });
 
         showStatus(statusDiv, `טוען ${jsonData.length} רשומות...`, 'info');
 
