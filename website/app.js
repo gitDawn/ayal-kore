@@ -107,11 +107,22 @@ async function uploadDanalog() {
 
         // Read Excel file using SheetJS
         const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array', sheetRows: 50000 }); // Limit to 50K rows to prevent memory issues
+        const workbook = XLSX.read(data, { type: 'array', sheetRows: 200000 }); // Limit to 200K rows to prevent memory issues
 
         // Get first sheet
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
+
+        // Check if file has more rows than our limit and warn user
+        if (worksheet['!fullref']) {
+            const range = XLSX.utils.decode_range(worksheet['!fullref']);
+            const totalRows = range.e.r + 1; // +1 because row index is 0-based
+            if (totalRows > 200000) {
+                showStatus(statusDiv, `⚠️ אזהרה: הקובץ מכיל ${totalRows.toLocaleString('he-IL')} שורות. מעבד רק 200,000 שורות ראשונות...`, 'info');
+            } else if (totalRows > 50000) {
+                showStatus(statusDiv, `מעבד קובץ גדול עם ${totalRows.toLocaleString('he-IL')} שורות...`, 'info');
+            }
+        }
 
         // Convert to JSON (only non-empty rows)
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
