@@ -41,18 +41,21 @@ header .subtitle {
 header a.help-button {
     display: inline-block;
     margin-top: 15px;
-    padding: 10px 25px;
+    padding: 12px 30px;
     background: white;
-    color: #667eea;
-    text-decoration: none;
-    border-radius: 5px;
+    color: #667eea !important;
+    text-decoration: none !important;
+    border-radius: 8px;
     font-weight: bold;
+    font-size: 1.1em;
     transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid white;
 }
 
 header a.help-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 5px 20px rgba(255, 255, 255, 0.4);
+    background: #f8f9fa;
 }
 
 main {
