@@ -72,7 +72,8 @@ def get_stats():
     })
 
 if __name__ == '__main__':
-    print("Starting Ayal Kore MVP Server...")
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Starting Ayal Kore MVP Server on port {port}...")
     print("This is a minimal version for testing basic functionality")
-    print("Server running on http://localhost:5000")
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    print(f"Server running on http://localhost:{port}")
+    app.run(debug=False, host='0.0.0.0', port=port)
