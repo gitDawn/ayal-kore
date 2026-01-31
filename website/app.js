@@ -45,36 +45,41 @@ async function uploadDanalog() {
 async function searchCatalog() {
     const columnSelect = document.getElementById('search-column');
     const searchInput = document.getElementById('search-text');
-    const resultsDiv = document.getElementById('search-results');
+    const statusDiv = document.getElementById('search-status');
+    const resultsDiv = document.getElementById('results-table');
+    const resultsTitle = document.getElementById('results-title');
 
     const column = columnSelect.value;
     const searchText = searchInput.value.trim();
 
     if (!column || !searchText) {
-        showStatus(resultsDiv, 'אנא בחר שדה וזן טקסט לחיפוש', 'error');
+        showStatus(statusDiv, 'אנא בחר שדה וזן טקסט לחיפוש', 'error');
         return;
     }
 
-    showStatus(resultsDiv, 'מחפש...', 'info');
+    showStatus(statusDiv, 'מחפש...', 'info');
 
     try {
         const response = await fetch(`${API_BASE_URL}/search?column=${encodeURIComponent(column)}&text=${encodeURIComponent(searchText)}`);
         const result = await response.json();
 
         if (result.success) {
-            displaySearchResults(result.results);
-            showStatus(resultsDiv, `נמצאו ${result.count} תוצאות`, 'success');
+            displaySearchResults(result.results, resultsDiv);
+            if (resultsTitle) resultsTitle.style.display = 'block';
+            showStatus(statusDiv, `נמצאו ${result.count} תוצאות`, 'success');
         } else {
-            showStatus(resultsDiv, `שגיאה: ${result.error}`, 'error');
+            showStatus(statusDiv, `שגיאה: ${result.error}`, 'error');
         }
     } catch (error) {
-        showStatus(resultsDiv, `שגיאה ברשת: ${error.message}`, 'error');
+        showStatus(statusDiv, `שגיאה ברשת: ${error.message}`, 'error');
     }
 }
 
 // Display search results
-function displaySearchResults(results) {
-    const resultsDiv = document.getElementById('search-results');
+function displaySearchResults(results, resultsDiv) {
+    if (!resultsDiv) {
+        resultsDiv = document.getElementById('results-table');
+    }
 
     if (results.length === 0) {
         resultsDiv.innerHTML = '<p>לא נמצאו תוצאות</p>';
@@ -124,10 +129,29 @@ async function updateStats() {
     }
 }
 
+// Alias for loadStats (called from HTML)
+function loadStats() {
+    updateStats();
+}
+
+// Export database (MVP - shows message)
+function exportDatabase() {
+    alert('ייצוא נתונים - תכונה זו תתווסף בגרסה הבאה.\nבגרסה הנוכחית הנתונים נשמרים בשרת.');
+}
+
+// Clear database (MVP - shows message)
+function clearDatabase() {
+    if (confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים?')) {
+        alert('מחיקת נתונים - תכונה זו תתווסף בגרסה הבאה.');
+    }
+}
+
 // Show status message
 function showStatus(element, message, type) {
-    element.className = `status-message ${type}`;
-    element.textContent = message;
+    if (element) {
+        element.className = `status-message ${type}`;
+        element.textContent = message;
+    }
 }
 
 // Initialize on page load
