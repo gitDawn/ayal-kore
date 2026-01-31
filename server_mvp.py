@@ -19,8 +19,11 @@ def get_db():
     global mongo_client, db
     if db is None and MONGO_URI:
         try:
-            mongo_client = MongoClient(MONGO_URI)
-            db = mongo_client.get_default_database()
+            mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+            # Use explicit database name
+            db = mongo_client['ayal_kore']
+            # Test connection
+            mongo_client.admin.command('ping')
             print("MongoDB connected successfully")
         except Exception as e:
             print(f"MongoDB connection failed: {e}")
