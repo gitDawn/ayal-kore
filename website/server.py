@@ -1,86 +1,65 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import sqlite3
+from flask_pymongo import PyMongo
 import pandas as pd
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# Database file path
-DB_PATH = 'danalog_catalog.db'
+# MongoDB configuration - initialize only when available
+mongo = None
+MONGO_AVAILABLE = False
+
+try:
+    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/ayal_kore")
+    app.config["MONGO_URI"] = mongo_uri
+    mongo = PyMongo(app)
+    MONGO_AVAILABLE = True
+    print("MongoDB initialized (connection will be tested on first use)")
+except Exception as e:
+    print(f"MongoDB initialization failed: {e}")
+    MONGO_AVAILABLE = False
+
+# Collection name
+COLLECTION_NAME = 'danalog_catalog'
 
 # Initialize database
 def init_db():
-    """Create the database and tables if they don't exist"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    """Create the collection and indexes if they don't exist"""
+    collection = mongo.db[COLLECTION_NAME]
 
-    # Create Danalog catalog table with all fields from the Excel
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS danalog_catalog (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            "ש.לפריט" TEXT,
-            "דאנאקוד" TEXT UNIQUE,
-            "שם" TEXT,
-            "ק.מחלקה" TEXT,
-            "ת.מחלקה" TEXT,
-            "מחיר" REAL,
-            "מ.מיוחד" REAL,
-            "מ.מיוחד1" REAL,
-            "לימוד" TEXT,
-            "מאושר" TEXT,
-            "ק.יצרן" TEXT,
-            "יצרן" TEXT,
-            "ק.מחבר" TEXT,
-            "מחבר" TEXT,
-            "ק.נושא" TEXT,
-            "נושא" TEXT,
-            "אזל" TEXT,
-            "ברקוד" TEXT,
-            "ברקוד-נ" TEXT,
-            "פמי.ר" TEXT,
-            "פמי.מ" TEXT,
-            "ת.פתיחה" TEXT,
-            "ת.עדכון" TEXT,
-            "ת.מה.ראשונה" TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+    # Create unique index on דאנאקוד
+    collection.create_index("דאנאקוד", unique=True, sparse=True)
 
-    # Create index on דאנאקוד for faster lookups
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_danalog_code
-        ON danalog_catalog("דאנאקוד")
-    ''')
+    # Create indexes for faster searching
+    collection.create_index("שם")
+    collection.create_index("מחבר")
+    collection.create_index("נושא")
+    collection.create_index("ברקוד")
 
-    conn.commit()
-    conn.close()
-
-# Check if database exists
-def db_exists():
-    """Check if database file exists and has data"""
-    if not os.path.exists(DB_PATH):
-        return False
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM danalog_catalog")
-    count = cursor.fetchone()[0]
-    conn.close()
-
-    return count > 0
+# Check if database has data
+def db_has_data():
+    """Check if collection exists and has data"""
+    collection = mongo.db[COLLECTION_NAME]
+    return collection.count_documents({}) > 0
 
 @app.route('/upload', methods=['POST'])
 def upload_danalog():
     """
-    Upload Danalog Excel file and import into database
-    - If no database exists, create new records with auto-incrementing IDs
-    - If database exists, check each record by דאנאקוד field
+    Upload Danalog Excel file and import into MongoDB
+    - Check each record by דאנאקוד field
       - Skip if exists
-      - Add with new unique ID if doesn't exist
+      - Add if doesn't exist
     """
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available. Please check MongoDB connection.'}), 500
+
     try:
         # Check if file was uploaded
         if 'file' not in request.files:
@@ -94,50 +73,48 @@ def upload_danalog():
         # Read Excel file
         df = pd.read_excel(file)
 
-        # Initialize database if not exists
+        # Initialize database if needed
         init_db()
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        collection = mongo.db[COLLECTION_NAME]
 
         added_count = 0
         skipped_count = 0
-
-        # Get column names from the DataFrame
-        columns = df.columns.tolist()
 
         for index, row in df.iterrows():
             danalog_code = row.get('דאנאקוד', None)
 
             # Check if record already exists
             if danalog_code:
-                cursor.execute('SELECT ID FROM danalog_catalog WHERE "דאנאקוד" = ?', (danalog_code,))
-                existing = cursor.fetchone()
-
+                existing = collection.find_one({"דאנאקוד": danalog_code})
                 if existing:
                     skipped_count += 1
                     continue
 
-            # Prepare data for insertion (excluding ID, will auto-increment)
-            placeholders = ', '.join(['?' for _ in columns])
-            column_names = ', '.join([f'"{col}"' for col in columns])
+            # Prepare document
+            doc = {}
+            for col in df.columns:
+                value = row[col]
+                if pd.notna(value):
+                    doc[col] = value
+                else:
+                    doc[col] = None
 
-            values = [row[col] if pd.notna(row[col]) else None for col in columns]
+            # Add timestamp
+            doc['created_at'] = datetime.utcnow()
 
-            # Insert new record
-            cursor.execute(
-                f'INSERT INTO danalog_catalog ({column_names}) VALUES ({placeholders})',
-                values
-            )
-            added_count += 1
-
-        conn.commit()
+            try:
+                collection.insert_one(doc)
+                added_count += 1
+            except Exception as e:
+                # Handle duplicate key error
+                if 'duplicate key' in str(e).lower():
+                    skipped_count += 1
+                else:
+                    raise e
 
         # Get total count
-        cursor.execute('SELECT COUNT(*) FROM danalog_catalog')
-        total_count = cursor.fetchone()[0]
-
-        conn.close()
+        total_count = collection.count_documents({})
 
         return jsonify({
             'success': True,
@@ -155,6 +132,9 @@ def search_catalog():
     Search catalog by column and text
     Returns matching records with only important fields displayed
     """
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available. Please check MongoDB connection.'}), 500
+
     try:
         column = request.args.get('column')
         search_text = request.args.get('text')
@@ -162,39 +142,32 @@ def search_catalog():
         if not column or not search_text:
             return jsonify({'error': 'חסרים פרמטרים לחיפוש'}), 400
 
-        # Check if database exists
-        if not db_exists():
+        # Check if database has data
+        if not db_has_data():
             return jsonify({'error': 'מסד הנתונים ריק. אנא העלה קטלוג תחילה'}), 400
 
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row  # Return rows as dictionaries
-        cursor = conn.cursor()
+        collection = mongo.db[COLLECTION_NAME]
 
-        # Build search query - use LIKE for partial matching
-        query = f'''
-            SELECT
-                ID,
-                "דאנאקוד",
-                "שם",
-                "ת.מחלקה",
-                "מחיר",
-                "מחבר",
-                "נושא",
-                "ברקוד",
-                "ת.פתיחה",
-                "ת.עדכון",
-                "ת.מה.ראשונה"
-            FROM danalog_catalog
-            WHERE "{column}" LIKE ?
-        '''
+        # Build search query - use regex for partial matching
+        query = {column: {"$regex": search_text, "$options": "i"}}
 
-        cursor.execute(query, (f'%{search_text}%',))
-        rows = cursor.fetchall()
+        # Projection to return only important fields
+        projection = {
+            "_id": 0,
+            "ID": 1,
+            "דאנאקוד": 1,
+            "שם": 1,
+            "ת.מחלקה": 1,
+            "מחיר": 1,
+            "מחבר": 1,
+            "נושא": 1,
+            "ברקוד": 1,
+            "ת.פתיחה": 1,
+            "ת.עדכון": 1,
+            "ת.מה.ראשונה": 1
+        }
 
-        # Convert rows to list of dictionaries
-        results = [dict(row) for row in rows]
-
-        conn.close()
+        results = list(collection.find(query, projection))
 
         return jsonify({
             'success': True,
@@ -208,21 +181,18 @@ def search_catalog():
 @app.route('/stats', methods=['GET'])
 def get_stats():
     """Get database statistics"""
-    try:
-        if not os.path.exists(DB_PATH):
-            return jsonify({
-                'database_exists': False,
-                'total_books': 0
-            })
+    if not MONGO_AVAILABLE:
+        return jsonify({
+            'database_exists': False,
+            'total_books': 0,
+            'message': 'Database not available. Please check MongoDB connection.'
+        })
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+    try:
+        collection = mongo.db[COLLECTION_NAME]
 
         # Get total count
-        cursor.execute('SELECT COUNT(*) FROM danalog_catalog')
-        total_count = cursor.fetchone()[0]
-
-        conn.close()
+        total_count = collection.count_documents({})
 
         return jsonify({
             'database_exists': True,
