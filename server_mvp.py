@@ -60,7 +60,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_danalog():
-    """Upload Danalog Excel file and import into MongoDB (memory-optimized)"""
+    """Upload Danalog Excel file and import into MongoDB (optimized for speed)"""
     database = get_db()
     if database is None:
         return jsonify({'error': 'Database not available. Please check MongoDB connection.'}), 500
@@ -77,11 +77,17 @@ def upload_danalog():
         init_db()
         collection = database[COLLECTION_NAME]
 
+        # Fetch all existing דאנאקוד codes in ONE query (fast lookup)
+        existing_codes = set(
+            doc['דאנאקוד'] for doc in collection.find({}, {'דאנאקוד': 1, '_id': 0})
+            if doc.get('דאנאקוד')
+        )
+
         # Use openpyxl with read_only mode for memory efficiency
         wb = load_workbook(file, read_only=True, data_only=True)
         ws = wb.active
 
-        added_count = 0
+        docs_to_insert = []
         skipped_count = 0
         headers = None
 
@@ -105,29 +111,33 @@ def upload_danalog():
                     if col_name == 'דאנאקוד':
                         danalog_code = value
 
-            # Check for duplicate
-            if danalog_code:
-                existing = collection.find_one({"דאנאקוד": danalog_code})
-                if existing:
-                    skipped_count += 1
-                    continue
+            # Check for duplicate using in-memory set (instant)
+            if danalog_code and danalog_code in existing_codes:
+                skipped_count += 1
+                continue
 
-            # Add timestamp
+            # Add timestamp and queue for batch insert
             doc['created_at'] = datetime.utcnow()
-
-            try:
-                collection.insert_one(doc)
-                added_count += 1
-            except Exception as e:
-                if 'duplicate key' in str(e).lower():
-                    skipped_count += 1
-                else:
-                    raise e
+            docs_to_insert.append(doc)
+            if danalog_code:
+                existing_codes.add(danalog_code)  # Prevent duplicates within file
 
         # Close workbook and free memory
         wb.close()
-        gc.collect()
 
+        # Batch insert all documents at once
+        added_count = 0
+        if docs_to_insert:
+            try:
+                result = collection.insert_many(docs_to_insert, ordered=False)
+                added_count = len(result.inserted_ids)
+            except Exception as e:
+                # Handle partial failures (some duplicates)
+                if hasattr(e, 'details'):
+                    added_count = e.details.get('nInserted', 0)
+                    skipped_count += len(docs_to_insert) - added_count
+
+        gc.collect()
         total_count = collection.count_documents({})
 
         return jsonify({
