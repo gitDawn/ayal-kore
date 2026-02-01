@@ -1,7 +1,7 @@
 // API-based version for online database
 // This version connects to the Flask backend server
 
-const API_BASE_URL = 'https://ayal-kore-mvp-43f9de485067.herokuapp.com';
+const API_BASE_URL = 'https://ayal-kore.onrender.com';
 
 // Upload and process Excel file
 async function uploadDanalog() {
