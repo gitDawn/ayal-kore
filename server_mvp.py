@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
-import pandas as pd
+from openpyxl import load_workbook
 import os
+import gc
 from datetime import datetime
 
 app = Flask(__name__)
@@ -59,7 +60,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_danalog():
-    """Upload Danalog Excel file and import into MongoDB"""
+    """Upload Danalog Excel file and import into MongoDB (memory-optimized)"""
     database = get_db()
     if database is None:
         return jsonify({'error': 'Database not available. Please check MongoDB connection.'}), 500
@@ -72,35 +73,44 @@ def upload_danalog():
         if file.filename == '':
             return jsonify({'error': 'לא נבחר קובץ'}), 400
 
-        # Read Excel file
-        df = pd.read_excel(file)
-
         # Initialize database indexes
         init_db()
-
         collection = database[COLLECTION_NAME]
+
+        # Use openpyxl with read_only mode for memory efficiency
+        wb = load_workbook(file, read_only=True, data_only=True)
+        ws = wb.active
 
         added_count = 0
         skipped_count = 0
+        headers = None
 
-        for index, row in df.iterrows():
-            danalog_code = row.get('דאנאקוד', None)
+        for row_num, row in enumerate(ws.iter_rows(values_only=True)):
+            # First row is headers
+            if row_num == 0:
+                headers = list(row)
+                continue
 
-            # Check if record already exists
+            # Skip empty rows
+            if not any(row):
+                continue
+
+            # Build document from row
+            doc = {}
+            danalog_code = None
+            for i, value in enumerate(row):
+                if i < len(headers) and headers[i]:
+                    col_name = headers[i]
+                    doc[col_name] = value if value is not None else None
+                    if col_name == 'דאנאקוד':
+                        danalog_code = value
+
+            # Check for duplicate
             if danalog_code:
                 existing = collection.find_one({"דאנאקוד": danalog_code})
                 if existing:
                     skipped_count += 1
                     continue
-
-            # Prepare document
-            doc = {}
-            for col in df.columns:
-                value = row[col]
-                if pd.notna(value):
-                    doc[col] = value
-                else:
-                    doc[col] = None
 
             # Add timestamp
             doc['created_at'] = datetime.utcnow()
@@ -113,6 +123,10 @@ def upload_danalog():
                     skipped_count += 1
                 else:
                     raise e
+
+        # Close workbook and free memory
+        wb.close()
+        gc.collect()
 
         total_count = collection.count_documents({})
 
