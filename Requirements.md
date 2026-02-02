@@ -30,15 +30,9 @@ The system serves as a database for used books stored in the bookstore's warehou
 
 ### 2.1 Deployment Options
 
-The system supports two deployment configurations:
+The system supports deployment configurations:
 
-#### Option A: Browser-Only (GitHub Pages)
-
-- **Storage**: Browser IndexedDB (local per device)
-- **Hosting**: GitHub Pages (free, static hosting)
-- **Limitations**: Data is local to each browser/device
-
-#### Option B: Full Stack (Flask + MongoDB)
+#### Option A: Full Stack (Flask + MongoDB)
 
 - **Frontend**: GitHub Pages
 - **Backend**: Python Flask on Render
@@ -493,8 +487,7 @@ Response: {
 │  └───────────────────────────────────────────────────────┘ │
 │                                                             │
 │  ┌─ ניהול מסד נתונים ────────────────────────────────────┐ │
-│  │  [יצוא JSON]    [מחק מסד נתונים]                      │ │
-│  │  ⚠️ מומלץ לגבות את המידע לפני מחיקה                   │ │
+│  │  [יצוא JSON]                      │ │
 │  └───────────────────────────────────────────────────────┘ │
 │                                                             │
 │  ─────────────────────────────────────────────────────────  │

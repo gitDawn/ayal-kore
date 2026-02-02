@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_pymongo import PyMongo
+from bson import ObjectId
 import pandas as pd
 import os
 from datetime import datetime
@@ -26,8 +27,11 @@ except Exception as e:
     print(f"MongoDB initialization failed: {e}")
     MONGO_AVAILABLE = False
 
-# Collection name
+# Collection names
 COLLECTION_NAME = 'danalog_catalog'
+DETAILS_COLLECTION = 'book_details'
+INVENTORY_COLLECTION = 'book_inventory'
+SPECIAL_COPIES_COLLECTION = 'book_special_copies'
 
 # Initialize database
 def init_db():
@@ -153,7 +157,7 @@ def search_catalog():
 
         # Projection to return only important fields
         projection = {
-            "_id": 0,
+            "_id": 1,
             "ID": 1,
             "דאנאקוד": 1,
             "שם": 1,
@@ -168,6 +172,11 @@ def search_catalog():
         }
 
         results = list(collection.find(query, projection))
+
+        # Convert ObjectId to string for JSON serialization
+        for result in results:
+            if '_id' in result:
+                result['_id'] = str(result['_id'])
 
         return jsonify({
             'success': True,
@@ -201,6 +210,173 @@ def get_stats():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ========================================
+# Book Details Endpoints
+# ========================================
+
+@app.route('/book/<book_id>/details', methods=['GET'])
+def get_book_details(book_id):
+    """Get additional details for a book"""
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 500
+
+    try:
+        collection = mongo.db[DETAILS_COLLECTION]
+        details = collection.find_one({"book_id": book_id}, {"_id": 0})
+
+        return jsonify({
+            'success': True,
+            'details': details or {}
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/book/<book_id>/details', methods=['POST'])
+def save_book_details(book_id):
+    """Save additional details for a book"""
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 500
+
+    try:
+        data = request.get_json()
+        collection = mongo.db[DETAILS_COLLECTION]
+
+        # Prepare document
+        doc = {
+            "book_id": book_id,
+            "subtitle": data.get('subtitle', ''),
+            "translator": data.get('translator', ''),
+            "publisher": data.get('publisher', ''),
+            "year": data.get('year'),
+            "pages": data.get('pages'),
+            "binding": data.get('binding', ''),
+            "size": data.get('size', ''),
+            "series_name": data.get('series_name', ''),
+            "number_in_series": data.get('number_in_series'),
+            "updated_at": datetime.utcnow()
+        }
+
+        # Upsert - update if exists, insert if not
+        collection.update_one(
+            {"book_id": book_id},
+            {"$set": doc},
+            upsert=True
+        )
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ========================================
+# Inventory Endpoints
+# ========================================
+
+@app.route('/book/<book_id>/inventory', methods=['GET'])
+def get_book_inventory(book_id):
+    """Get inventory for a book"""
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 500
+
+    try:
+        collection = mongo.db[INVENTORY_COLLECTION]
+        inventory = collection.find_one({"book_id": book_id}, {"_id": 0})
+
+        return jsonify({
+            'success': True,
+            'inventory': inventory.get('items', []) if inventory else []
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/book/<book_id>/inventory', methods=['POST'])
+def save_book_inventory(book_id):
+    """Save inventory for a book"""
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 500
+
+    try:
+        data = request.get_json()
+        collection = mongo.db[INVENTORY_COLLECTION]
+
+        # Prepare document
+        doc = {
+            "book_id": book_id,
+            "items": data.get('items', []),
+            "updated_at": datetime.utcnow()
+        }
+
+        # Upsert - update if exists, insert if not
+        collection.update_one(
+            {"book_id": book_id},
+            {"$set": doc},
+            upsert=True
+        )
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ========================================
+# Special Copies Endpoints
+# ========================================
+
+@app.route('/book/<book_id>/special', methods=['GET'])
+def get_special_copies(book_id):
+    """Get special copies for a book"""
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 500
+
+    try:
+        collection = mongo.db[SPECIAL_COPIES_COLLECTION]
+        special = collection.find_one({"book_id": book_id}, {"_id": 0})
+
+        return jsonify({
+            'success': True,
+            'copies': special.get('copies', []) if special else []
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/book/<book_id>/special', methods=['POST'])
+def save_special_copies(book_id):
+    """Save special copies for a book"""
+    if not MONGO_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 500
+
+    try:
+        data = request.get_json()
+        collection = mongo.db[SPECIAL_COPIES_COLLECTION]
+
+        # Prepare document
+        doc = {
+            "book_id": book_id,
+            "copies": data.get('copies', []),
+            "updated_at": datetime.utcnow()
+        }
+
+        # Upsert - update if exists, insert if not
+        collection.update_one(
+            {"book_id": book_id},
+            {"$set": doc},
+            upsert=True
+        )
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/', methods=['GET'])
 def index():
