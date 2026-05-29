@@ -16,20 +16,31 @@ db = None
 COLLECTION_NAME = 'danalog_catalog'
 
 def get_db():
-    """Get database connection, initialize if needed"""
+    """Get database connection, initialize if needed. Reconnects on stale connections."""
     global mongo_client, db
-    if db is None and MONGO_URI:
+    if not MONGO_URI:
+        return None
+    if db is not None:
+        # Verify the connection is still alive
         try:
-            mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=30000)
-            # Use explicit database name
-            db = mongo_client['ayal_kore']
-            # Test connection
             mongo_client.admin.command('ping')
-            print("MongoDB connected successfully")
-        except Exception as e:
-            print(f"MongoDB connection failed: {e}")
-            return None
-    return db
+            return db
+        except Exception:
+            # Connection is stale, reset and reconnect
+            print("MongoDB connection stale, reconnecting...")
+            mongo_client = None
+            db = None
+    try:
+        mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=30000)
+        db = mongo_client['ayal_kore']
+        mongo_client.admin.command('ping')
+        print("MongoDB connected successfully")
+        return db
+    except Exception as e:
+        print(f"MongoDB connection failed: {e}")
+        mongo_client = None
+        db = None
+        return None
 
 def init_db():
     """Create indexes if they don't exist"""
