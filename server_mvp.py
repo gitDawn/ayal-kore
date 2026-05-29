@@ -20,7 +20,7 @@ def get_db():
     global mongo_client, db
     if db is None and MONGO_URI:
         try:
-            mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+            mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=30000)
             # Use explicit database name
             db = mongo_client['ayal_kore']
             # Test connection
