@@ -4,10 +4,28 @@ from pymongo import MongoClient
 from openpyxl import load_workbook
 import os
 import gc
+import threading
+import time
 from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
+
+def keep_alive_ping():
+    """Ping MongoDB every 6 hours to prevent Atlas free tier from pausing."""
+    while True:
+        time.sleep(6 * 60 * 60)  # 6 hours
+        try:
+            database = get_db()
+            if database is not None:
+                database.client.admin.command('ping')
+                print("Keep-alive ping sent to MongoDB")
+        except Exception as e:
+            print(f"Keep-alive ping failed: {e}")
+
+# Start keep-alive thread
+ping_thread = threading.Thread(target=keep_alive_ping, daemon=True)
+ping_thread.start()
 
 # MongoDB configuration
 MONGO_URI = os.getenv("MONGO_URI")
