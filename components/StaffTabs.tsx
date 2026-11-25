@@ -11,12 +11,13 @@ import SimaniaTab from '@/components/SimaniaTab';
 import SimaniaSync from '@/components/SimaniaSync';
 import SearchStats from '@/components/SearchStats';
 import RecommendationsAdmin from '@/components/RecommendationsAdmin';
+import BackupTab from '@/components/BackupTab';
 
-export type Section = 'upload' | 'edit' | 'covers' | 'simania' | 'searches' | 'recommendations';
+export type Section = 'upload' | 'edit' | 'covers' | 'simania' | 'searches' | 'recommendations' | 'backup';
 
 const PATHS: Record<Section, string> = {
   upload: '/admin/upload', edit: '/admin/edit-books', covers: '/admin', simania: '/admin/simania',
-  searches: '/admin/searches', recommendations: '/admin/recommendations',
+  searches: '/admin/searches', recommendations: '/admin/recommendations', backup: '/admin/backup',
 };
 export const BANNERS: Record<Section, [string, string]> = {
   upload: ['עדכון מלאי', 'העלאת קובץ מלאי בפורמט CSV'],
@@ -25,6 +26,7 @@ export const BANNERS: Record<Section, [string, string]> = {
   simania: ['סימניה', 'מעקב אחרי הייבוא והעדכונים מסימניה'],
   searches: ['חיפושים באתר', 'מה מבקרים מחפשים, ומה חיפשו ולא מצאו'],
   recommendations: ['המלצות', 'סרטונים מפייסבוק והספרים שמופיעים בהם'],
+  backup: ['גיבוי', 'הורדת הנתונים והכריכות למחשב'],
 };
 
 export function useSection(): Section {
@@ -35,6 +37,7 @@ export function useSection(): Section {
   if (p.endsWith('/simania')) return 'simania';
   if (p.endsWith('/searches')) return 'searches';
   if (p.endsWith('/recommendations')) return 'recommendations';
+  if (p.endsWith('/backup')) return 'backup';
   return 'covers'; // the staff area opens on cover import
 }
 
@@ -53,11 +56,13 @@ export default function StaffTabs({ section, uploader }: { section: Section; upl
         {tab('searches', 'חיפושים באתר')}
         {tab('edit', 'עריכת ספרים')}
         {tab('recommendations', 'המלצות')}
+        {tab('backup', 'גיבוי')}
       </div>
       {section === 'upload' ? uploader
         : section === 'simania' ? <><SimaniaSync /><SimaniaTab /></>
         : section === 'searches' ? <SearchStats />
         : section === 'recommendations' ? <RecommendationsAdmin />
+        : section === 'backup' ? <BackupTab />
         : section === 'edit' ? <BookEditor key={openKey ?? 'all'} initialKey={openKey} />
         : <CoverImporter onOpenBook={(k) => router.push(`${PATHS.edit}?book=${encodeURIComponent(k)}`)} />}
     </>
