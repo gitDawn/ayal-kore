@@ -1,0 +1,8 @@
+.sim-setup summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.sim-setup ol, .sim-steps { margin: 8px 0 0; padding-inline-start: 22px; display: grid; gap: 8px; font-size: 14px; }
+.sim-steps .muted { color: var(--muted); font-size: 13px; }
+.bookmarklet { display: inline-block; padding: 6px 14px; border-radius: 999px; background: #5b4636; color: #fff !important; text-decoration: none; font-weight: 600; cursor: grab; }
+.sim-preview details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.sim-changes { margin: 6px 0 0; padding-inline-start: 20px; font-size: 14px; display: grid; gap: 3px; max-height: 320px; overflow: auto; }
+.sim-limit { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.sim-limit label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }

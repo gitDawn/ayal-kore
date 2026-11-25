@@ -1,0 +1,23 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 8px 22px 22px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--row-alt);
+}
+.img { flex: 0 0 220px; width: 220px; height: 124px; object-fit: cover; border-radius: 10px; display: block; }
+.text { display: grid; gap: 4px; min-width: 0; }
+.title { margin: 0; font-size: 17px; }
+.body { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
+.link { font-size: 14px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; justify-self: start; }
+
+/* While search results are on screen, keep the page about the books. */
+:global(.card:has(.results)) .wrap { display: none; }
+
+@media (max-width: 560px) {
+  .wrap { flex-direction: column; align-items: stretch; margin: 8px 14px 18px; }
+  .img { flex: none; width: 100%; height: 130px; }
+}

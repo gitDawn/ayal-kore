@@ -1,19 +1,9 @@
-# Secrets - NEVER commit these
-secrets.txt
+
+# Codata
+.codata/*
+!.codata/*.json
+!.codata/design/
 .env
-
-# Python
-__pycache__/
-*.py[cod]
-*.so
-.venv/
-venv/
-ENV/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+.env.local
+node_modules
+.next

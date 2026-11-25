@@ -1,0 +1,25 @@
+{
+  "name": "book-search-site",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "codata-io": "0.13.0",
+    "next": "15.5.29",
+    "papaparse": "5.5.3",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.6",
+    "@types/papaparse": "5.3.16",
+    "@types/react": "19.1.13",
+    "typescript": "5.9.3"
+  }
+}

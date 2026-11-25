@@ -1,0 +1,51 @@
+/* ── Category editor ── */
+.edit-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.edit-list li + li { border-top: 1px solid var(--line); }
+.edit-list button { display: grid; gap: 2px; width: 100%; text-align: start; background: #fff; border: 0; padding: 10px 14px; cursor: pointer; }
+.edit-list button:hover { background: var(--row-alt); }
+.edit-list .t { font-weight: 600; }
+.edit-list .a, .edit-list .c { font-size: 13px; color: var(--muted); }
+.edit-list .more-hint { padding: 10px 14px; font-size: 13px; color: var(--muted); background: var(--row-alt); }
+.edited-tag { margin-inline-start: 8px; font-size: 11px; background: var(--yellow); color: var(--ink); border-radius: 999px; padding: 1px 8px; }
+.editor { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--row-alt); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.tag { display: inline-flex; align-items: center; gap: 6px; background: var(--chip-on); color: #fff; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 14px; }
+.tag button { background: rgba(255,255,255,.2); color: #fff; border: 0; border-radius: 50%; width: 20px; height: 20px; line-height: 18px; cursor: pointer; padding: 0; }
+.tag-empty { font-size: 13px; color: var(--muted); }
+
+/* ── Covers ── */
+.has-cover { color: var(--muted); font-size: 12px; margin-inline-end: 6px; }
+.cover-edit { display: flex; gap: 16px; align-items: flex-start; }
+.cover-box { flex: 0 0 160px; height: 230px; border: 1px solid var(--line); border-radius: 6px; background: #fff; display: grid; place-items: center; overflow: hidden; font-size: 12px; color: var(--muted); }
+.cover-box img { width: 100%; height: 100%; object-fit: contain; }
+.cover-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.cover-grid img { height: 110px; width: auto; border-radius: 4px; border: 1px solid var(--line); background: #fff; }
+.progress { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--chip-on); }
+.cover-link { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 4px; }
+.cover-link:hover img, .cover-link:focus-visible img { outline: 2px solid var(--chip-on); outline-offset: 2px; }
+/* The button fills the box (a button's own percentage height is unreliable), and the image is laid
+   over it so the whole cover always fits inside, without cropping. */
+.cover-zoom { position: relative; padding: 0; border: 0; background: none; place-self: stretch; cursor: zoom-in; display: block; }
+.cover-zoom img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.zoom-badge { position: absolute; inset-inline-end: 4px; bottom: 4px; width: 26px; height: 26px; border-radius: 50%; background: rgba(11, 11, 11, .72); color: #fff; display: grid; place-items: center; }
+.cover-zoom:hover .zoom-badge { background: var(--chip-on); }
+.lightbox { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .78); display: grid; place-items: center; padding: 24px; cursor: zoom-out; }
+.lightbox img { max-width: min(90vw, 520px); max-height: 85vh; width: auto; height: auto; min-height: min(60vh, 480px); object-fit: contain; border-radius: 6px; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+.lightbox-close { position: absolute; top: 16px; inset-inline-end: 16px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: #fff; color: #111; font-size: 24px; line-height: 1; cursor: pointer; }
+@media (max-width: 560px) { .cover-edit { flex-direction: column; } .cover-box { flex: none; width: 160px; } }
+
+.simania-info { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--row-alt); font-size: 14px; }
+.simania-info ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.simania-info li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.simania-info .when { color: var(--muted); }
+.stag { font-size: 12px; border-radius: 999px; padding: 1px 8px; background: #eceae6; color: #444; }
+.stag-זול { background: #e3f4e8; color: #1f7a3d; }
+.stag-יקר { background: #fde6e6; color: #a32020; }
+.stag-מבוקש { background: #fff1d6; color: #8a5a00; }
+
+.price-edit ul { list-style: none; margin: 4px 0 6px; padding: 0; display: grid; gap: 6px; }
+.price-edit li { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 14px; }
+.price-edit input { width: 100px; }
+.price-edit .copy-n { color: var(--muted); min-width: 54px; }
+.price-edit .cond { color: var(--muted); }
