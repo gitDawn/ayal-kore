@@ -3,7 +3,8 @@
 .add-row.off { opacity: .6; }
 .add-row.s-added { border-color: #8bc49a; background: #f4fbf6; opacity: 1; }
 .add-row.s-failed { border-color: #e2a0a0; }
-.add-row > input[type=checkbox] { margin-top: 8px; width: 18px; height: 18px; }
+.add-include { display: grid; justify-items: center; gap: 2px; width: 58px; margin-top: 4px; font-size: 11px; line-height: 1.2; text-align: center; color: var(--muted); cursor: pointer; }
+.add-include input { width: 18px; height: 18px; margin: 0; }
 .add-cover { width: 72px; height: 92px; display: grid; place-items: center; background: var(--row-alt); border-radius: 4px; overflow: hidden; font-size: 11px; color: var(--muted); text-align: center; }
 .add-cover img { width: 100%; height: 100%; object-fit: contain; }
 .add-body { display: grid; gap: 6px; min-width: 0; }
@@ -26,6 +27,6 @@
   .add-sale { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-start; align-items: center; }
 }
 .add-coverbox { display: grid; gap: 4px; justify-items: center; align-content: start; min-width: 0; }
-.add-cover-note { font-size: 12px; display: flex; gap: 4px; align-items: center; color: var(--muted); }
+.add-cover-note { font-size: 11px; line-height: 1.2; display: flex; gap: 4px; align-items: flex-start; color: var(--muted); max-width: 76px; text-align: start; }
 .add-cover-note.ok { color: #2d7a45; }
 .add-cover-note.err { color: #b03a3a; }

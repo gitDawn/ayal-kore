@@ -257,14 +257,17 @@ export default function SimaniaAddTab() {
               const locked = r.status === 'added' || r.status === 'adding';
               return (
                 <li key={r.key} className={`add-row s-${r.status}${r.include ? '' : ' off'}`}>
-                  <input type="checkbox" aria-label="לכלול" checked={r.include} disabled={locked || !r.chosen || r.status === 'owned'}
-                    onChange={(e) => update(r.key, { include: e.target.checked })} />
+                  <label className="add-include">
+                    <input type="checkbox" checked={r.include} disabled={locked || !r.chosen || r.status === 'owned'}
+                      onChange={(e) => update(r.key, { include: e.target.checked })} />
+                    <span>הוספה לסימניה</span>
+                  </label>
                   <div className="add-coverbox">
                     <div className="add-cover">{r.coverUrl ? <img src={r.coverUrl} alt="כריכה מהצילום" /> : <span>אין כריכה מהצילום</span>}</div>
                     {r.cover && (
-                      r.coverState === 'saved' ? <span className="add-cover-note ok">נשמרה באתר ✓</span>
+                      r.coverState === 'saved' ? <span className="add-cover-note ok">הכריכה נשמרה באתר ✓</span>
                         : <label className="add-cover-note"><input type="checkbox" checked={r.keepCover} disabled={r.coverState === 'saving'}
-                            onChange={(e) => update(r.key, { keepCover: e.target.checked })} /> לאתר</label>
+                            onChange={(e) => update(r.key, { keepCover: e.target.checked })} /> שמירת הכריכה באתר</label>
                     )}
                     {r.coverState === 'failed' && <span className="add-cover-note err">השמירה נכשלה</span>}
                   </div>
