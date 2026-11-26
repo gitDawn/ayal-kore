@@ -129,7 +129,22 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
     logSearch({ q: query.text, field: query.field, category: query.category, condition: query.condition, maxPrice: query.maxPrice, results: results.length });
   }, [query, results]);
 
+  const browseRef = useRef<HTMLDivElement>(null);
+
+  // A search adds a step to the browser's history, so the phone's or browser's back button
+  // returns to the category list instead of leaving the site.
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      if ((e.state as { haayalSearch?: boolean } | null)?.haayalSearch) return;
+      setQuery(null);
+      setDraft(EMPTY);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   function run(q: Query) {
+    if (!query) window.history.pushState({ ...(window.history.state ?? {}), haayalSearch: true }, '');
     setQuery(q);
     setShown(PAGE);
     requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -145,6 +160,14 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
     setDraft(q);
     setShowFilters(true);
     run(q);
+  }
+
+  /** Back to the full category list, as before the search. */
+  function backToCategories() {
+    if ((window.history.state as { haayalSearch?: boolean } | null)?.haayalSearch) { window.history.back(); }
+    else { setQuery(null); setDraft(EMPTY); }
+    setShown(PAGE);
+    requestAnimationFrame(() => browseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   const closeDialog = useCallback(() => setOpen(null), []);
@@ -224,12 +247,15 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
               : ''}
       </p>
 
-      {books && !query && categories.length > 0 && (
-        <div className="browse">
-          <h3>או דפדפו לפי קטגוריה</h3>
+      {books && categories.length > 0 && (
+        <div className="browse" ref={browseRef}>
+          <h3>{query ? 'קטגוריות' : 'או דפדפו לפי קטגוריה'}</h3>
           <div className="chips">
+            {query && (
+              <button type="button" className="chip" onClick={backToCategories}>כל הקטגוריות</button>
+            )}
             {categories.map(([c, n]) => (
-              <button key={c} type="button" className="chip" onClick={() => browseCategory(c)}>
+              <button key={c} type="button" className="chip" aria-pressed={query?.category === c} onClick={() => browseCategory(c)}>
                 {c}<small>{n.toLocaleString('he-IL')}</small>
               </button>
             ))}
@@ -241,7 +267,8 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
       {results && (
         <div className="results">
           <div className="results-head">
-            <h2>תוצאות חיפוש</h2>
+            <h2>{query?.category && !query.text.trim() ? query.category : 'תוצאות חיפוש'}</h2>
+            <button type="button" className="btn ghost back-btn" onClick={backToCategories}>→ חזרה לכל הקטגוריות</button>
             <label className="sort">מיון לפי:
               <select value={sort} onChange={(e) => { setSort(e.target.value as Sort); setShown(PAGE); }}>
                 <option value="title">שם הספר (א-ת)</option>

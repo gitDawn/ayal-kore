@@ -64,3 +64,6 @@
 .badge.out { background: #ececec; color: #555; border: 1px solid #d6d6d6; }
 .book-card.is-out .book-cover img { opacity: .55; filter: grayscale(.4); }
 .book-card.is-out .book-title { color: var(--muted); }
+
+/* Back from a category or a search to the full category list. */
+.back-btn { padding: 4px 14px; font-size: 14px; margin-inline-end: auto; }
