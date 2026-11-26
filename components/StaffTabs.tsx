@@ -3,6 +3,7 @@
 // Staff pages: each tab has its own address, so the browser's back and forward work.
 // Adding a tab: add it to Section, PATHS, BANNERS, useSection, the tab row and the switch below,
 // and create app/admin/<name>/page.tsx (returning null).
+// "סימניה" has two inner tabs with their own addresses: updating from Simania, and adding books to Simania.
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import BookEditor from '@/components/BookEditor';
@@ -25,7 +26,7 @@ export const BANNERS: Record<Section, [string, string]> = {
   upload: ['עדכון מלאי', 'העלאת קובץ מלאי בפורמט CSV'],
   edit: ['עריכת ספרים', 'קטגוריות וכריכה לכל ספר'],
   covers: ['ייבוא כריכות', 'כריכות מגוגל ספרים, בדיקה ותיקון'],
-  simania: ['סימניה', 'מעקב אחרי הייבוא והעדכונים מסימניה'],
+  simania: ['סימניה', 'עדכון המלאי מסימניה, והוספת ספרים לסימניה'],
   searches: ['חיפושים באתר', 'מה מבקרים מחפשים, ומה חיפשו ולא מצאו'],
   recommendations: ['המלצות', 'סרטונים מפייסבוק והספרים שמופיעים בהם'],
   backup: ['גיבוי', 'הורדת הנתונים והכריכות למחשב'],
@@ -48,7 +49,12 @@ export function useSection(): Section {
 export default function StaffTabs({ section, uploader }: { section: Section; uploader: React.ReactNode }) {
   const router = useRouter();
   const openKey = useSearchParams().get('book');
-  const tab = (s: Section, label: string) => (
+  const inSimania = section === 'simania' || section === 'simania-add';
+  const tab = (s: Section, label: string) => {
+    const on = section === s || (s === 'simania' && inSimania);
+    return <Link href={PATHS[s]} role="tab" className="chip" aria-pressed={on} aria-selected={on}>{label}</Link>;
+  };
+  const inner = (s: Section, label: string) => (
     <Link href={PATHS[s]} role="tab" className="chip" aria-pressed={section === s} aria-selected={section === s}>{label}</Link>
   );
   return (
@@ -56,7 +62,6 @@ export default function StaffTabs({ section, uploader }: { section: Section; upl
       <div className="chips" role="tablist" style={{ justifyContent: 'flex-start', margin: 0 }}>
         {tab('covers', 'ייבוא כריכות')}
         {tab('simania', 'סימניה')}
-        {tab('simania-add', 'הוספה לסימניה')}
         {tab('upload', 'עדכון מלאי')}
         {tab('searches', 'חיפושים באתר')}
         {tab('edit', 'עריכת ספרים')}
@@ -64,11 +69,18 @@ export default function StaffTabs({ section, uploader }: { section: Section; upl
         {tab('backup', 'גיבוי')}
       </div>
       {section === 'upload' ? uploader
-        : section === 'simania' ? <><SimaniaSync /><SimaniaTab /></>
+        : inSimania ? (
+          <>
+            <div className="chips subtabs" role="tablist" aria-label="סימניה" style={{ justifyContent: 'flex-start', margin: 0 }}>
+              {inner('simania', 'עדכון מסימניה')}
+              {inner('simania-add', 'הוספה לסימניה מתמונה או סרטון')}
+            </div>
+            {section === 'simania' ? <><SimaniaSync /><SimaniaTab /></> : <SimaniaAddTab />}
+          </>
+        )
         : section === 'searches' ? <SearchStats />
         : section === 'recommendations' ? <RecommendationsAdmin />
         : section === 'backup' ? <BackupTab />
-        : section === 'simania-add' ? <SimaniaAddTab />
         : section === 'edit' ? <BookEditor key={openKey ?? 'all'} initialKey={openKey} />
         : <CoverImporter onOpenBook={(k) => router.push(`${PATHS.edit}?book=${encodeURIComponent(k)}`)} />}
     </>

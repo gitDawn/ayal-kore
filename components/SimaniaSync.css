@@ -6,3 +6,6 @@
 .sim-changes { margin: 6px 0 0; padding-inline-start: 20px; font-size: 14px; display: grid; gap: 3px; max-height: 320px; overflow: auto; }
 .sim-limit { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 .sim-limit label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+/* Inner tabs of "סימניה": smaller and lighter than the main tab row. */
+.chips.subtabs { padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.04); gap: 6px; }
+.chips.subtabs .chip { font-size: 14px; padding: 4px 12px; }

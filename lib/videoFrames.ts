@@ -195,17 +195,15 @@ export async function scanImages(files: File[], onProgress: (text: string) => vo
   };
   let done = 0;
   const results: ScanResult[] = new Array(files.length);
-  const report = () => onProgress(`מזהה ספרים בתמונות: ${done} מתוך ${files.length} הושלמו (עד דקה לכל תמונה)`);
+  const report = () => onProgress(`מזהה ספרים בתמונות: ${done} מתוך ${files.length} הושלמו (בדרך כלל כמה שניות לכל תמונה)`);
   report();
   let next = 0;
   let failure: Error | null = null;
   const worker = async () => {
     while (next < files.length) {
       const i = next++;
-      try {
-        try { results[i] = await one(files[i], true); }
-        catch (e) { if (!/עמוס|איטי/.test((e as Error).message)) throw e; results[i] = await one(files[i], false); }
-      } catch (e) { failure = e as Error; }
+      // The server already retries while Gemini is busy, so a failure here is final for this picture.
+      try { results[i] = await one(files[i], true); } catch (e) { failure = e as Error; }
       done++; report();
     }
   };
@@ -230,7 +228,7 @@ export async function scanImages(files: File[], onProgress: (text: string) => vo
 }
 
 async function sendScan(form: FormData, onProgress: (text: string) => void): Promise<ScanResult> {
-  onProgress('שולח ל-Gemini ומזהה ספרים… (עד דקה)');
+  onProgress('שולח ל-Gemini ומזהה ספרים…');
   const { data } = await supabase().auth.getSession();
   const res = await fetch('/video-scan', {
     method: 'POST',
