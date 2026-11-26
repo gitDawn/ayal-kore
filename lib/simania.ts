@@ -8,7 +8,6 @@ import { BUCKET, publicFileUrl, supabase, type InventoryVersion } from './supaba
 import { COLUMNS, COND, P, decodeSnapshot, encodeSnapshot, inStock, type BookRow, type Snapshot } from './inventory';
 import { countInStock } from './stock';
 import { bookKey, rowKey } from './categories';
-import { fetchCoverRows, saveCover, toSmallImage } from './covers';
 import { refreshCatalog } from '@/app/actions';
 
 export const IMPORT_BUCKET = 'imports';
@@ -102,7 +101,6 @@ export interface ImportSummary {
   addedTitles: string[];
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Runs the whole import. Covers are fetched one at a time with a pause,
@@ -121,7 +119,7 @@ export async function importSimania(file: SimaniaFile, onProgress: (text: string
     simania_book_id: i.bookId,
     title: i.bookTitle, author: i.bookAuthor, publisher: i.publisher, year: i.year,
     price: i.price, condition: i.conditionText, category: i.categoryName, subcategory: i.subcategoryName,
-    cover_url: i.hasImage ? i.coverImage : null,
+    cover_url: null, // Simania's covers are not used (copyright)
     simania_updated_at: i.updatedAt,
     tags: simaniaTags(i),
     market: { min: i.marketMinPrice, max: i.marketMaxPrice, avg: i.marketAvgPrice, sellers: i.sellerCount, views: i.viewsCount },
@@ -193,35 +191,8 @@ export async function importSimania(file: SimaniaFile, onProgress: (text: string
     summary.addedTitles = missing.map((r) => r[0]);
   }
 
-  // 3. Covers, only for books without one (not for books whose cover staff removed).
-  if (!withCovers) { onProgress(''); return summary; }
-  const coverRows = await fetchCoverRows(false);
-  const skip = new Set(coverRows.filter((r) => r.path || r.source === 'removed').map((r) => r.book_key));
-  const todo = new Map<string, SimaniaRaw>();
-  for (const i of items) {
-    const key = bookKey(i.bookTitle, i.bookAuthor || '');
-    if (i.hasImage && i.coverImage && !skip.has(key) && !todo.has(key)) todo.set(key, i);
-  }
-  let n = 0;
-  for (const [key, i] of todo) {
-    n++;
-    onProgress(`שומר כריכות מסימניה: ${n} מתוך ${todo.size}`);
-    try {
-      const res = await fetch(`/cover-image?u=${encodeURIComponent(i.coverImage as string)}`);
-      if (!res.ok) throw new Error(String(res.status));
-      const img = await createImageBitmap(await res.blob());
-      const hq = img.width >= 450;
-      const blob = await toSmallImage(img, hq ? 600 : 300);
-      // Stored with source 'simania' so it is not mixed up with Google covers awaiting review.
-      await saveCover({ key, title: i.bookTitle, author: i.bookAuthor || '' }, blob, 'simania' as 'staff', {
-        hq, reviewed: true, query: 'כריכה מסימניה',
-      });
-      summary.covers++;
-    } catch {
-      summary.coverErrors++;
-    }
-    await sleep(1500);
-  }
+  // Simania's cover images are not copied to the site (copyright), by staff decision.
+  void withCovers;
   onProgress('');
   return summary;
 }

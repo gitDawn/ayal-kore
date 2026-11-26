@@ -14,7 +14,6 @@ export interface CatalogBook {
   author: string | null;
   year: number | null;
   publisher: string | null;
-  cover: string | null;
   owned: boolean;          // already in the store's stock (for sale or not)
   status: string | null;
   avg: number | null;      // market prices on Simania

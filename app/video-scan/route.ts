@@ -27,7 +27,11 @@ List every distinct book whose title you can actually read.
 - The same book seen in several photos, frames or crops is one entry. copies = how many copies of that same book you see.
 - featured = true for a book shown from the front (its cover); false for a book seen only by its spine.
 - source: "cover", "spine", or "speech" (only mentioned in the sound).
-- Do not guess: leave out any title you cannot read with confidence.`;
+- Do not guess: leave out any title you cannot read with confidence.
+- For a book whose FRONT COVER is visible: cover_image = the number of the image (0 = the first image sent) where that front cover
+  is seen best (largest, sharpest, least hidden), and cover_box = [ymin, xmin, ymax, xmax] of the whole front cover in that image,
+  each from 0 to 1000 relative to that image's height and width. Box the full cover edge to edge, not the title alone, and not a spine.
+  Leave both out for a book seen only by its spine, or when its cover is mostly hidden.`;
 
 const SCHEMA = {
   type: 'OBJECT',
@@ -50,7 +54,24 @@ const SCHEMA = {
   required: ['books'],
 };
 
-interface Found { title: string; author?: string; featured: boolean; source?: string; copies?: number; }
+const SHELF_SCHEMA = {
+  ...SCHEMA,
+  properties: {
+    books: {
+      ...SCHEMA.properties.books,
+      items: {
+        ...SCHEMA.properties.books.items,
+        properties: {
+          ...SCHEMA.properties.books.items.properties,
+          cover_image: { type: 'INTEGER' },
+          cover_box: { type: 'ARRAY', items: { type: 'INTEGER' } },
+        },
+      },
+    },
+  },
+};
+
+interface Found { title: string; author?: string; featured: boolean; source?: string; copies?: number; cover_image?: number; cover_box?: number[]; }
 
 async function isStaff(token: string): Promise<boolean> {
   if (!token) return false;
@@ -67,7 +88,7 @@ const toBase64 = async (f: File) => Buffer.from(await f.arrayBuffer()).toString(
 // Fast models first; a busy or missing model falls through to the next one, within the time limit.
 const DEADLINE_MS = 52_000;
 
-async function askGemini(key: string, parts: unknown[]): Promise<{ model: string; books: Found[] }> {
+async function askGemini(key: string, parts: unknown[], schema: unknown = SCHEMA): Promise<{ model: string; books: Found[] }> {
   const models = [process.env.GEMINI_MODEL, 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-flash-lite-latest']
     .filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
   const until = Date.now() + DEADLINE_MS;
@@ -81,7 +102,7 @@ async function askGemini(key: string, parts: unknown[]): Promise<{ model: string
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), left);
     try {
-      const generationConfig: Record<string, unknown> = { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0.1 };
+      const generationConfig: Record<string, unknown> = { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.1 };
       // Reading titles needs little reasoning; keeping it low makes the answer much faster.
       if (think) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -155,12 +176,13 @@ export async function POST(req: Request) {
   const audio = form.get('audio');
   if (!frames.length) return Response.json({ error: 'no frames' }, { status: 400 });
 
-  const parts: unknown[] = [{ text: form.get('mode') === 'shelf' ? SHELF_PROMPT : PROMPT }];
+  const shelf = form.get('mode') === 'shelf';
+  const parts: unknown[] = [{ text: shelf ? SHELF_PROMPT : PROMPT }];
   for (const f of frames) parts.push({ inlineData: { mimeType: 'image/jpeg', data: await toBase64(f) } });
   if (audio instanceof File && audio.size > 0) parts.push({ inlineData: { mimeType: 'audio/wav', data: await toBase64(audio) } });
 
   try {
-    const [found, c] = await Promise.all([askGemini(key, parts), getCatalog()]);
+    const [found, c] = await Promise.all([askGemini(key, parts, shelf ? SHELF_SCHEMA : SCHEMA), getCatalog()]);
     if (!c) return Response.json({ error: 'catalog' }, { status: 503 });
     const books = found.books.map((f) => ({ ...f, matches: match(c, f.title, f.author) }));
     books.sort((x, y) => Number(y.featured) - Number(x.featured));

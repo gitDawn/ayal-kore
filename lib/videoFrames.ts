@@ -4,6 +4,7 @@
 // and the sound as a small mono WAV, kept under the size the site's server accepts.
 import { supabase } from './supabase';
 import type { BookHit } from './recommendations';
+import { toSmallImage } from './covers';
 
 const BUDGET = 3.8 * 1024 * 1024; // bytes sent to the server in one request
 
@@ -81,7 +82,43 @@ export async function videoAudio(file: File, rate: number, maxSeconds: number): 
 }
 
 export interface ScanMatch extends BookHit { score: number; }
-export interface ScanBook { title: string; author?: string; featured: boolean; source?: string; copies?: number; matches: ScanMatch[]; }
+export interface ScanBook {
+  title: string; author?: string; featured: boolean; source?: string; copies?: number; matches: ScanMatch[];
+  cover_image?: number; cover_box?: number[];                 // where Gemini saw the front cover (shelf mode)
+  cover?: Blob; coverHq?: boolean; coverArea?: number;        // that cover, cut from the staff's own photo or video
+}
+
+/** The image region (in the original picture) that each sent image shows. */
+type Rect = [number, number, number, number];
+
+/**
+ * Cut the front cover that Gemini boxed out of the staff's own picture. `rect` is the part of
+ * `img` that the sent image showed; `box` is [ymin, xmin, ymax, xmax] from 0 to 1000 within it.
+ */
+async function cutCover(img: ImageBitmap, rect: Rect, box: number[] | undefined): Promise<{ blob: Blob; hq: boolean; area: number } | null> {
+  if (!box || box.length !== 4 || box.some((v) => typeof v !== 'number' || v < 0 || v > 1000)) return null;
+  const [y0, x0, y1, x1] = box;
+  if (y1 - y0 < 30 || x1 - x0 < 20) return null;
+  const [sx, sy, sw, sh] = rect;
+  const pad = 0.015;
+  const left = Math.max(0, sx + (x0 / 1000 - pad) * sw), top = Math.max(0, sy + (y0 / 1000 - pad) * sh);
+  const right = Math.min(img.width, sx + (x1 / 1000 + pad) * sw), bottom = Math.min(img.height, sy + (y1 / 1000 + pad) * sh);
+  const w = Math.round(right - left), h = Math.round(bottom - top);
+  if (w < 40 || h < 60) return null;
+  const part = await createImageBitmap(img, Math.round(left), Math.round(top), w, h);
+  const hq = w >= 450;
+  try { return { blob: await toSmallImage(part, hq ? 600 : 300), hq, area: w * h }; } finally { part.close(); }
+}
+
+/** Attach the cut covers to the books found, from the images that were sent. */
+async function addCovers(books: ScanBook[], sources: { img: ImageBitmap; rect: Rect }[]) {
+  for (const b of books) {
+    const src = typeof b.cover_image === 'number' ? sources[b.cover_image] : undefined;
+    if (!src) continue;
+    const cut = await cutCover(src.img, src.rect, b.cover_box).catch(() => null);
+    if (cut) { b.cover = cut.blob; b.coverHq = cut.hq; b.coverArea = cut.area; }
+  }
+}
 export interface ScanResult { model: string; frames: number; audio: boolean; books: ScanBook[]; }
 
 /** Which instructions the recognition uses: 'video' for recommendation videos, 'shelf' for books to add to stock. */
@@ -109,7 +146,14 @@ export async function scanVideo(file: File, onProgress: (text: string) => void, 
   parts.forEach((b, i) => form.append('frames', b, `f${i}.jpg`));
   if (sound) form.append('audio', sound, 'audio.wav');
   if (mode !== 'video') form.append('mode', mode);
-  return sendScan(form, onProgress);
+  const res = await sendScan(form, onProgress);
+  if (mode === 'shelf') {
+    onProgress('חותך כריכות מהסרטון…');
+    const imgs = await Promise.all(parts.map((b) => createImageBitmap(b)));
+    await addCovers(res.books, imgs.map((img) => ({ img, rect: [0, 0, img.width, img.height] as Rect })));
+    imgs.forEach((i) => i.close());
+  }
+  return res;
 }
 
 /** Draw part of an image (sx, sy, sw, sh) at most maxSide pixels on its long side, as JPEG. */
@@ -131,17 +175,23 @@ export async function scanImages(files: File[], onProgress: (text: string) => vo
   // One request per picture keeps each answer fast; two run at a time and the lists are merged.
   const one = async (file: File, halves: boolean) => {
     const img = await createImageBitmap(file);
-    const out: Blob[] = [await crop(img, 0, 0, img.width, img.height, 1600, 0.8)];
+    const rects: Rect[] = [[0, 0, img.width, img.height]];
     if (halves) {
       const wide = img.width >= img.height;
       const w = wide ? Math.round(img.width * 0.55) : img.width, h = wide ? img.height : Math.round(img.height * 0.55);
-      out.push(await crop(img, 0, 0, w, h, 1600, 0.8));
-      out.push(await crop(img, img.width - w, img.height - h, w, h, 1600, 0.8));
+      rects.push([0, 0, w, h], [img.width - w, img.height - h, w, h]);
     }
+    const out: Blob[] = [];
+    for (const [x, y, w, h] of rects) out.push(await crop(img, x, y, w, h, 1600, 0.8));
     const form = new FormData();
     out.forEach((b, i) => form.append('frames', b, `f${i}.jpg`));
     form.append('mode', 'shelf');
-    return sendScan(form, () => {});
+    try {
+      const res = await sendScan(form, () => {});
+      // Covers are cut from the original photo at full resolution.
+      await addCovers(res.books, rects.map((rect) => ({ img, rect })));
+      return res;
+    } finally { img.close(); }
   };
   let done = 0;
   const results: ScanResult[] = new Array(files.length);
@@ -173,6 +223,7 @@ export async function scanImages(files: File[], onProgress: (text: string) => vo
       had.copies = Math.max(had.copies || 1, b.copies || 1);
       if (!had.author && b.author) had.author = b.author;
       if (!had.matches?.length && b.matches?.length) had.matches = b.matches;
+      if (b.cover && (!had.cover || (b.coverArea ?? 0) > (had.coverArea ?? 0))) { had.cover = b.cover; had.coverHq = b.coverHq; had.coverArea = b.coverArea; }
     }
   }
   return { model: ok[0].model, frames: ok.reduce((a, r) => a + r.frames, 0), audio: false, books: [...seen.values()] };

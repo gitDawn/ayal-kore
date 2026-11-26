@@ -9,6 +9,9 @@ import './SimaniaAdd.css';
 import './BookEditor.css';
 import { scanImages, scanVideo, type ScanBook } from '@/lib/videoFrames';
 import { CONDITIONS, SimaniaBridge, fit, queriesFor, suggestPrice, type CatalogBook } from '@/lib/simania-bridge';
+import { bookKey } from '@/lib/categories';
+import { saveCover } from '@/lib/covers';
+import { supabase } from '@/lib/supabase';
 
 type Status = 'new' | 'searching' | 'ready' | 'nomatch' | 'owned' | 'adding' | 'added' | 'failed';
 
@@ -25,6 +28,11 @@ interface Row {
   price: string;
   status: Status;
   error?: string;
+  cover: Blob | null;             // the front cover cut from the staff's own photo or video
+  coverUrl: string | null;        // a local preview address for it
+  coverHq: boolean;
+  keepCover: boolean;             // save it as the book's cover on the site
+  coverState: '' | 'saving' | 'saved' | 'failed';
 }
 
 const nf = (n: number) => n.toLocaleString('he-IL');
@@ -60,7 +68,12 @@ export default function SimaniaAddTab() {
         key: nextKey++, title: b.title, author: b.author || '', copies: b.copies || 1,
         inSite: b.matches?.[0] && b.matches[0].score >= 0.75 ? `${b.matches[0].title}${b.matches[0].inStock ? '' : ' (לא במלאי)'}` : null,
         include: true, candidates: [], chosen: null, condition, price: '', status: 'new',
+        cover: b.cover ?? null, coverUrl: b.cover ? URL.createObjectURL(b.cover) : null, coverHq: !!b.coverHq,
+        // Not when the site already shows a cover for this book.
+        keepCover: !!b.cover && !(b.matches?.[0] && b.matches[0].score >= 0.75 && b.matches[0].cover),
+        coverState: '',
       }));
+      rowsRef.current.forEach((r) => r.coverUrl && URL.revokeObjectURL(r.coverUrl));
       setRows(found);
       if (!found.length) setError('לא זוהו ספרים. נסו תמונה חדה יותר, או קרובה יותר לספרים.');
       if (connected) void searchAll(found);
@@ -121,10 +134,40 @@ export default function SimaniaAddTab() {
   const ready = rows.filter((r) => r.include && r.chosen && Number(r.price) > 0 && r.status !== 'added');
   const missingPrice = rows.filter((r) => r.include && r.chosen && !(Number(r.price) > 0)).length;
 
+  const coverRows = rows.filter((r) => r.keepCover && r.cover && r.chosen && r.coverState !== 'saved');
+
+  /** Save the cut covers as the books' covers on the site, under the title and author as Simania lists them. */
+  async function saveCovers(list: Row[]) {
+    let saved = 0;
+    for (const r of list) {
+      const c = r.candidates.find((x) => x.bookId === r.chosen);
+      if (!c || !r.cover) continue;
+      update(r.key, { coverState: 'saving' });
+      try {
+        const key = bookKey(c.title, c.author || '');
+        const { data } = await supabase().from('book_covers').select('path').eq('book_key', key).maybeSingle();
+        await saveCover({ key, title: c.title, author: c.author || '' }, r.cover, 'staff', { hq: r.coverHq, query: 'צילום של הצוות' }, data?.path ?? null);
+        update(r.key, { coverState: 'saved' });
+        saved++;
+      } catch {
+        update(r.key, { coverState: 'failed' });
+      }
+    }
+    return saved;
+  }
+
+  async function saveCoversOnly() {
+    if (!coverRows.length) return;
+    if (!window.confirm(`לשמור ${coverRows.length} כריכות מהצילום באתר?`)) return;
+    setError(''); setBusy('שומר כריכות באתר…');
+    try { await saveCovers(coverRows); } finally { setBusy(''); }
+  }
+
   async function addAll() {
     const b = bridge.current;
     if (!b?.connected || !ready.length) return;
-    if (!window.confirm(`להוסיף ${ready.length} ספרים למלאי של החנות בסימניה?`)) return;
+    const covers = ready.filter((r) => r.keepCover && r.cover).length;
+    if (!window.confirm(`להוסיף ${ready.length} ספרים למלאי של החנות בסימניה?${covers ? ` ${covers} כריכות מהצילום יישמרו באתר.` : ''}`)) return;
     setError(''); setBusy('מוסיף לסימניה…');
     for (const r of ready) update(r.key, { status: 'adding' });
     try {
@@ -135,6 +178,8 @@ export default function SimaniaAddTab() {
         if (res?.ok) { added++; update(r.key, { status: 'added', include: false }); }
         else { failed++; update(r.key, { status: 'failed', error: res?.error || `סימניה החזירה שגיאה ${res?.status ?? ''}` }); }
       }
+      const withCover = ready.filter((r) => r.keepCover && r.cover && results.find((x) => x.bookId === r.chosen)?.ok);
+      if (withCover.length) { setBusy('שומר כריכות באתר…'); await saveCovers(withCover); }
       setDone({ added, failed });
     } catch {
       setError('ההוספה לא הצליחה. בדקו שהלשונית של סימניה עדיין פתוחה.');
@@ -143,7 +188,7 @@ export default function SimaniaAddTab() {
   }
 
   function addManual() {
-    setRows((rs) => [...rs, { key: nextKey++, title: '', author: '', copies: 1, inSite: null, include: true, candidates: [], chosen: null, condition, price: '', status: 'new' }]);
+    setRows((rs) => [...rs, { key: nextKey++, title: '', author: '', copies: 1, inSite: null, include: true, candidates: [], chosen: null, condition, price: '', status: 'new', cover: null, coverUrl: null, coverHq: false, keepCover: false, coverState: '' }]);
   }
 
   return (
@@ -210,7 +255,15 @@ export default function SimaniaAddTab() {
                 <li key={r.key} className={`add-row s-${r.status}${r.include ? '' : ' off'}`}>
                   <input type="checkbox" aria-label="לכלול" checked={r.include} disabled={locked || !r.chosen || r.status === 'owned'}
                     onChange={(e) => update(r.key, { include: e.target.checked })} />
-                  <div className="add-cover">{c?.cover ? <img src={c.cover} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>אין תמונה</span>}</div>
+                  <div className="add-coverbox">
+                    <div className="add-cover">{r.coverUrl ? <img src={r.coverUrl} alt="כריכה מהצילום" /> : <span>אין כריכה מהצילום</span>}</div>
+                    {r.cover && (
+                      r.coverState === 'saved' ? <span className="add-cover-note ok">נשמרה באתר ✓</span>
+                        : <label className="add-cover-note"><input type="checkbox" checked={r.keepCover} disabled={r.coverState === 'saving'}
+                            onChange={(e) => update(r.key, { keepCover: e.target.checked })} /> לאתר</label>
+                    )}
+                    {r.coverState === 'failed' && <span className="add-cover-note err">השמירה נכשלה</span>}
+                  </div>
                   <div className="add-body">
                     <div className="add-found">
                       <input value={r.title} placeholder="שם הספר" disabled={locked} onChange={(e) => update(r.key, { title: e.target.value })} />
@@ -258,6 +311,9 @@ export default function SimaniaAddTab() {
             <button className="btn dark" type="button" disabled={!connected || !ready.length || !!busy} onClick={addAll}>
               הוספה לסימניה ({nf(ready.length)} ספרים)
             </button>
+            <button className="btn" type="button" disabled={!coverRows.length || !!busy} onClick={saveCoversOnly}>
+              שמירת כריכות באתר בלבד ({nf(coverRows.length)})
+            </button>
             <button className="btn ghost" type="button" disabled={!!busy} onClick={addManual}>+ ספר שלא זוהה</button>
             {missingPrice > 0 && <span className="muted" style={{ fontSize: 13 }}>ל־{missingPrice} ספרים חסר מחיר, והם לא יתווספו עד שיהיה.</span>}
           </div>
@@ -265,7 +321,7 @@ export default function SimaniaAddTab() {
           {done && (
             <p className={done.failed ? 'msg err' : 'msg ok'}>
               נוספו לסימניה {nf(done.added)} ספרים{done.failed ? `, ו־${nf(done.failed)} לא נוספו (הסיבה מופיעה ליד כל ספר)` : ''}.
-              כדי שיופיעו גם באתר, עם הכריכה מסימניה, הריצו <Link href="/admin/simania">עדכון מסימניה</Link> עם &quot;יום&quot;.
+              כדי שיופיעו גם באתר, הריצו <Link href="/admin/simania">עדכון מסימניה</Link> עם &quot;יום&quot;. הכריכות שסומנו כבר נשמרו מהצילום שלכם.
             </p>
           )}
         </section>

@@ -1,7 +1,7 @@
 // Cover images linked from Simania (shown directly from its image server) for
 // books without a stored cover. Read is public; the table holds only key + address.
 import { SUPABASE_KEY, SUPABASE_URL } from './supabase';
-import { fetchCoverMap } from './covers';
+import { coverUrl, fetchCoverRows } from './covers';
 
 export async function fetchCoverLinks(): Promise<Map<string, string>> {
   const out = new Map<string, string>();
@@ -21,9 +21,13 @@ export async function fetchCoverLinks(): Promise<Map<string, string>> {
 
 /**
  * book_key → image address for the public catalog.
- * Only covers stored on the site are shown. Simania's links (fetchCoverLinks)
- * are kept in the database but not displayed, by staff decision.
+ * Only covers stored on the site are shown. Nothing from Simania is shown (copyright), by staff
+ * decision: not its links (fetchCoverLinks), and not the few covers once copied from it (source 'simania').
  */
 export async function fetchAllCovers(): Promise<Map<string, string>> {
-  return fetchCoverMap().catch(() => new Map<string, string>());
+  const m = new Map<string, string>();
+  try {
+    for (const r of await fetchCoverRows(true)) if (r.path && (r.source as string) !== 'simania') m.set(r.book_key, coverUrl(r.path));
+  } catch { /* no covers rather than no catalog */ }
+  return m;
 }

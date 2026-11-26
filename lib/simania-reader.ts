@@ -10,7 +10,7 @@ export const MESSAGE_KIND = 'simania-items';
 
 const FIELDS: (keyof SimaniaRaw)[] = [
   'ownedId', 'bookId', 'bookTitle', 'bookAuthor', 'publisher', 'year', 'price', 'conditionText',
-  'categoryName', 'subcategoryName', 'hasImage', 'coverImage', 'updatedAt', 'sellerCount',
+  'categoryName', 'subcategoryName', 'hasImage', 'updatedAt', 'sellerCount',
   'isCheapest', 'isMostExpensive', 'hasDemand', 'isExclusive', 'isStale',
   'marketMinPrice', 'marketMaxPrice', 'marketAvgPrice', 'viewsCount',
 ];
@@ -67,7 +67,7 @@ box.style.cssText='position:fixed;top:12px;left:12px;z-index:2147483647;backgrou
 document.body.appendChild(box);
 if(!window.opener){box.textContent='יש לפתוח את הלשונית הזו מהכפתור באתר האיל הקורא (הוספה לסימניה).';return}
 let added=0;const show=()=>{box.textContent='מחובר לאתר האיל הקורא. השאירו את הלשונית הזו פתוחה וחזרו לאתר.'+(added?' נוספו '+added+' ספרים.':'')};show();
-const pick=i=>({bookId:i.bookId,title:i.bookTitle,author:i.bookAuthor,year:i.year,publisher:i.publisher,cover:i.hasImage?i.coverImage:null,owned:!!i.isOwned,status:i.status,avg:i.marketAvgPrice,min:i.marketMinPrice,max:i.marketMaxPrice,sellers:i.sellerCount});
+const pick=i=>({bookId:i.bookId,title:i.bookTitle,author:i.bookAuthor,year:i.year,publisher:i.publisher,owned:!!i.isOwned,status:i.status,avg:i.marketAvgPrice,min:i.marketMinPrice,max:i.marketMaxPrice,sellers:i.sellerCount});
 async function search(q){const r=await fetch('/api/sellers/inventory?page=1&pageSize=8&scope=catalog&filter=all&sort=relevance&includeCounts=false&search='+encodeURIComponent(q),{credentials:'include'});if(!r.ok)throw new Error('search '+r.status);const j=await r.json();return (j.items||[]).map(pick)}
 async function add(items){const out=[];for(const it of items){try{const r=await fetch('/api/sellers/inventory',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookId:it.bookId,price:it.price,condition:it.condition})});let body=null;try{body=await r.json()}catch(e){}out.push({bookId:it.bookId,ok:r.ok,status:r.status,error:r.ok?null:(body&&(body.error||body.message))||null});if(r.ok){added++;show()}}catch(e){out.push({bookId:it.bookId,ok:false,status:0,error:String(e&&e.message||e)})}await new Promise(s=>setTimeout(s,300))}return out}
 window.addEventListener('message',async e=>{if(e.origin!==O||e.source!==window.opener)return;const m=e.data;if(!m||m.kind!==${JSON.stringify(BRIDGE_CALL)})return;

@@ -92,7 +92,8 @@ export async function planSimania({ items, fetchedAt, since, pages, totalPages }
   return { items, fetchedAt, since, pages, totalPages, base, rows, added, returned, changed };
 }
 
-/** Write the approved plan: Simania details, cover links, a new inventory version, the raw list. */
+/** Write the approved plan: Simania details, a new inventory version, the raw list.
+ *  Simania's cover images are not used or recorded (copyright), by staff decision. */
 export async function applySimania(plan: SimaniaPlan, onProgress: (text: string) => void): Promise<{ inStock: number }> {
   const sb = supabase();
   const now = new Date().toISOString();
@@ -108,7 +109,7 @@ export async function applySimania(plan: SimaniaPlan, onProgress: (text: string)
     simania_book_id: i.bookId,
     title: i.bookTitle, author: i.bookAuthor, publisher: i.publisher, year: i.year,
     price: i.price, condition: i.conditionText, category: i.categoryName, subcategory: i.subcategoryName,
-    cover_url: i.hasImage ? i.coverImage : null,
+    cover_url: null,
     simania_updated_at: i.updatedAt,
     tags: simaniaTags(i),
     market: { min: i.marketMinPrice, max: i.marketMaxPrice, avg: i.marketAvgPrice, sellers: i.sellerCount, views: i.viewsCount },
@@ -119,14 +120,6 @@ export async function applySimania(plan: SimaniaPlan, onProgress: (text: string)
     const { error } = await sb.from('simania_items').upsert(rows.slice(k, k + 500), { onConflict: 'owned_id' });
     if (error) throw error;
   }
-  const links = new Map<string, string>();
-  for (const r of rows) if (r.cover_url && !links.has(r.book_key)) links.set(r.book_key, r.cover_url);
-  const linkRows = [...links].map(([book_key, url]) => ({ book_key, url, updated_at: now }));
-  for (let k = 0; k < linkRows.length; k += 500) {
-    const { error } = await sb.from('book_cover_links').upsert(linkRows.slice(k, k + 500), { onConflict: 'book_key' });
-    if (error) throw error;
-  }
-
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
