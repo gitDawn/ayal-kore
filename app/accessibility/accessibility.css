@@ -1,0 +1,9 @@
+.a11y { max-width: 760px; margin: 0 auto; line-height: 1.75; font-size: 16px; }
+.a11y h1 { font-size: 26px; margin: 0 0 4px; }
+.a11y h2 { font-size: 19px; margin: 26px 0 8px; }
+.a11y h3 { font-size: 17px; margin: 0 0 8px; }
+.a11y ul { padding-inline-start: 22px; margin: 0; }
+.a11y li { margin-bottom: 6px; }
+.a11y a { color: #6a2a24; font-weight: 600; }
+.a11y-date { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.a11y-contact { margin-top: 14px; background: var(--row-alt); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }

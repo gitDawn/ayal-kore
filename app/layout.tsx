@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './a11y.css';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/inventory';
 import RecoveryRedirect from '@/components/RecoveryRedirect';
+import SkipLink from '@/components/SkipLink';
 import { SITE_URL } from '@/lib/bookUrl';
 
 export const metadata: Metadata = {
@@ -27,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <SkipLink />
         <RecoveryRedirect />
         {children}
       </body>

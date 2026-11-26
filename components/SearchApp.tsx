@@ -295,17 +295,12 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
                   <li
                     key={i}
                     className={b.out ? 'book-card clickable is-out' : 'book-card clickable'}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`פרטים על ${r[T]}`}
-                    onClick={() => setOpen(b)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(b); } }}
                   >
                     <div className="book-cover">
                       <CoverImg src={b.cover} alt={`כריכת ${r[T]}`} />
                     </div>
                     <div className="book-info">
-                      <h3 className="book-title">{r[T]}</h3>
+                      <h3 className="book-title"><button type="button" className="card-open" onClick={() => setOpen(b)}>{r[T]}</button></h3>
                       {r[A] && <div className="book-author">{r[A]}</div>}
                       {(r[PUB] || r[Y]) && <div className="book-meta">{[r[PUB], r[Y]].filter(Boolean).join(', ')}</div>}
                       {b.cats.length > 0 && (

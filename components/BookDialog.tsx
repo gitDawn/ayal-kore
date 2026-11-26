@@ -2,7 +2,7 @@
 
 // Details of one book, opened by clicking a search result: large cover, details and,
 // when one was saved, the book's description.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { A, COND, P, PUB, T, Y, formatPrice, inStock, type BookRow } from '@/lib/inventory';
 import { rowKey } from '@/lib/categories';
 import { fetchDescription } from '@/lib/descriptions';
@@ -23,20 +23,36 @@ export default function BookDialog({ row, cover, cats, subs, onClose }: {
   const [desc, setDesc] = useState<string | null | undefined>(undefined); // undefined = loading
   const list = useReadingList();
   const available = inStock(row);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let live = true;
     fetchDescription(rowKey(row)).then((d) => { if (live) setDesc(d); }).catch(() => { if (live) setDesc(null); });
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const opener = document.activeElement as HTMLElement | null;
+    const box = boxRef.current;
+    box?.querySelector<HTMLElement>('.book-dialog-close')?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !box) return;
+      // Keep keyboard focus inside the open dialog.
+      const items = Array.from(box.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { live = false; window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+    return () => {
+      live = false; window.removeEventListener('keydown', onKey); document.body.style.overflow = prev;
+      if (opener && document.contains(opener)) opener.focus();
+    };
   }, [row, onClose]);
 
   return (
     <div className="book-dialog-back" onClick={onClose}>
-      <div className="book-dialog" role="dialog" aria-modal="true" aria-label={row[T]} onClick={(e) => e.stopPropagation()}>
+      <div ref={boxRef} className="book-dialog" role="dialog" aria-modal="true" aria-label={row[T]} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="book-dialog-close" aria-label="סגירה" onClick={onClose}>×</button>
         <div className="book-dialog-cover"><CoverImg src={cover} alt={`כריכת ${row[T]}`} /></div>
         <div className="book-dialog-body">

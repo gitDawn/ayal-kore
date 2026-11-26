@@ -52,10 +52,10 @@ export default function StaffTabs({ section, uploader }: { section: Section; upl
   const inSimania = section === 'simania' || section === 'simania-add';
   const tab = (s: Section, label: string) => {
     const on = section === s || (s === 'simania' && inSimania);
-    return <Link href={PATHS[s]} role="tab" className="chip" aria-pressed={on} aria-selected={on}>{label}</Link>;
+    return <Link href={PATHS[s]} role="tab" className="chip" aria-selected={on}>{label}</Link>;
   };
   const inner = (s: Section, label: string) => (
-    <Link href={PATHS[s]} role="tab" className="chip" aria-pressed={section === s} aria-selected={section === s}>{label}</Link>
+    <Link href={PATHS[s]} role="tab" className="chip" aria-selected={section === s}>{label}</Link>
   );
   return (
     <>

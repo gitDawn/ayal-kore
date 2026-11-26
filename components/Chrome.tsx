@@ -8,7 +8,7 @@ const STORE_MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURI
 const LOGO_URL = 'https://hrsqrehrrkklntmvxbns.supabase.co/storage/v1/object/public/covers/site/logo-v2.png';
 const STORE_SIMANIA = 'https://simania.co.il/userPage.php?userId=36217&tab=bookWorld';
 
-export function SiteNav({ active }: { active: 'search' | 'recommendations' | 'facebook' | 'admin' }) {
+export function SiteNav({ active }: { active?: 'search' | 'recommendations' | 'facebook' | 'admin' }) {
   return (
     <header className="site-nav">
       <nav className="site-nav-inner" aria-label="ניווט ראשי">
@@ -76,6 +76,7 @@ export function SiteFoot({ children }: { children?: React.ReactNode }) {
           <a href={STORE_SIMANIA} target="_blank" rel="noopener noreferrer">סימניה</a>
           <a href={STORE_FACEBOOK} target="_blank" rel="noopener noreferrer">פייסבוק</a>
           <Link href="/category">קטגוריות</Link>
+          <Link href="/accessibility">הצהרת נגישות</Link>
         </div>
         <span>{children}</span>
       </div>

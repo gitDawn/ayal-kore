@@ -1,0 +1,24 @@
+/* Accessibility additions (WCAG 2.0 AA, Israeli standard 5568). */
+.skip-link { position: absolute; inset-inline-start: 12px; top: -60px; z-index: 1000; background: var(--yellow); color: var(--yellow-ink); padding: 10px 16px; border-radius: 10px; font-weight: 700; text-decoration: none; }
+.skip-link:focus { top: 10px; }
+main:focus { outline: none; }
+
+/* Text contrast of at least 4.5:1. */
+.badge { color: var(--ok); }
+.badge.new { background: var(--ok); color: #fff; }
+
+/* Admin tabs mark the selected tab with aria-selected. */
+.chip[aria-selected='true'] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on); font-weight: 700; }
+.chip[aria-selected='true'] small { color: inherit; opacity: .8; }
+
+/* Book cards: the title button opens the details and covers the whole card. */
+.book-card.clickable { position: relative; }
+.card-open { all: unset; cursor: pointer; }
+.card-open::after { content: ''; position: absolute; inset: 0; border-radius: 6px; }
+.card-open:focus-visible { outline: none; }
+.card-open:focus-visible::after { outline: 3px solid var(--focus); outline-offset: 4px; }
+.book-card .rl-toggle { position: relative; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
