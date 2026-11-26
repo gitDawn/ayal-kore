@@ -57,7 +57,9 @@ export const BRIDGE_REPLY = 'simania-bridge-reply';
  * Runs on Simania's inventory page when the site opened it as a bridge ("הוספה לסימניה"):
  * answers the site tab that opened it, and only that tab, with two operations:
  *   search  look a title up in Simania's catalog;
- *   add     add books to the store's stock (bookId, price, condition 1–5), one request each.
+ *   add     add books to the store's stock (bookId, price, condition 1–5), one request each;
+ *   offers  the sellers' offers for one book, read from the book's page on Simania
+ *           (price, condition, seller, and days since the seller was last seen on Simania).
  */
 export const BRIDGE = `(()=>{
 const O=${JSON.stringify(SITE_ORIGIN)};
@@ -69,9 +71,10 @@ if(!window.opener){box.textContent='יש לפתוח את הלשונית הזו �
 let added=0;const show=()=>{box.textContent='מחובר לאתר האיל הקורא. השאירו את הלשונית הזו פתוחה וחזרו לאתר.'+(added?' נוספו '+added+' ספרים.':'')};show();
 const pick=i=>({bookId:i.bookId,title:i.bookTitle,author:i.bookAuthor,year:i.year,publisher:i.publisher,owned:!!i.isOwned,status:i.status,avg:i.marketAvgPrice,min:i.marketMinPrice,max:i.marketMaxPrice,sellers:i.sellerCount});
 async function search(q){const r=await fetch('/api/sellers/inventory?page=1&pageSize=8&scope=catalog&filter=all&sort=relevance&includeCounts=false&search='+encodeURIComponent(q),{credentials:'include'});if(!r.ok)throw new Error('search '+r.status);const j=await r.json();return (j.items||[]).map(pick)}
+async function offers(id){const r=await fetch('/bookdetails.php?item_id='+encodeURIComponent(id),{credentials:'include'});if(!r.ok)throw new Error('offers '+r.status);const t=(await r.text()).replace(/\\\\"/g,'"');const now=Date.now(),seen=new Set(),out=[];const f=(s,re)=>{const m=s.match(re);return m?m[1]:null};for(const m of t.matchAll(/\\{"ownedId":[^{}]*\\}/g)){const s=m[0],oid=f(s,/"ownedId":(\\d+)/);if(!oid||seen.has(oid))continue;seen.add(oid);const ls=Date.parse(f(s,/"lastSeen":"([^"]*)"/)||'');out.push({price:Number(f(s,/"price":([\\d.]+)/))||0,condition:Number(f(s,/"conditionValue":(\\d+)/))||0,inStock:f(s,/"inStock":(true|false)/)!=='false',userId:Number(f(s,/"userId":(\\d+)/))||0,days:isNaN(ls)?null:Math.floor((now-ls)/864e5)})}return out}
 async function add(items){const out=[];for(const it of items){try{const r=await fetch('/api/sellers/inventory',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookId:it.bookId,price:it.price,condition:it.condition})});let body=null;try{body=await r.json()}catch(e){}out.push({bookId:it.bookId,ok:r.ok,status:r.status,error:r.ok?null:(body&&(body.error||body.message))||null});if(r.ok){added++;show()}}catch(e){out.push({bookId:it.bookId,ok:false,status:0,error:String(e&&e.message||e)})}await new Promise(s=>setTimeout(s,300))}return out}
 window.addEventListener('message',async e=>{if(e.origin!==O||e.source!==window.opener)return;const m=e.data;if(!m||m.kind!==${JSON.stringify(BRIDGE_CALL)})return;
-let reply;try{const result=m.op==='search'?await search(String(m.q||'')):m.op==='add'?await add(Array.isArray(m.items)?m.items:[]):null;reply={ok:true,result}}catch(err){reply={ok:false,error:String(err&&err.message||err)}}
+let reply;try{const result=m.op==='search'?await search(String(m.q||'')):m.op==='add'?await add(Array.isArray(m.items)?m.items:[]):m.op==='offers'?await offers(Number(m.bookId)):null;reply={ok:true,result}}catch(err){reply={ok:false,error:String(err&&err.message||err)}}
 window.opener.postMessage({kind:${JSON.stringify(BRIDGE_REPLY)},id:m.id,...reply},O)});
 window.opener.postMessage({kind:${JSON.stringify(BRIDGE_READY)}},O);
 })();`;

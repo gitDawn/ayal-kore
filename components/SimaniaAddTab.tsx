@@ -8,7 +8,7 @@ import './SimaniaSync.css';
 import './SimaniaAdd.css';
 import './BookEditor.css';
 import { scanImages, scanVideo, type ScanBook } from '@/lib/videoFrames';
-import { CONDITIONS, SimaniaBridge, fit, queriesFor, suggestPrice, type CatalogBook } from '@/lib/simania-bridge';
+import { CONDITIONS, SimaniaBridge, fit, offerPrice, queriesFor, suggestPrice, type CatalogBook } from '@/lib/simania-bridge';
 import { bookKey, cleanList, fetchCategoryEdits, fileCategories } from '@/lib/categories';
 import { loadUniqueBooks } from '@/lib/catalog-client';
 import TagInput from './TagInput';
@@ -28,6 +28,7 @@ interface Row {
   chosen: number | null;          // bookId on Simania
   condition: number;
   price: string;
+  priceNote: string;              // how the suggested price was set
   status: Status;
   error?: string;
   cover: Blob | null;             // the front cover cut from the staff's own photo or video
@@ -94,7 +95,7 @@ export default function SimaniaAddTab() {
       const found: Row[] = res.books.map((b: ScanBook) => ({
         key: nextKey++, title: b.title, author: b.author || '', copies: b.copies || 1,
         inSite: b.matches?.[0] && b.matches[0].score >= 0.75 ? `${b.matches[0].title}${b.matches[0].inStock ? '' : ' (לא במלאי)'}` : null,
-        include: true, candidates: [], chosen: null, condition, price: '', status: 'new',
+        include: true, candidates: [], chosen: null, condition, price: '', priceNote: '', status: 'new',
         cover: b.cover ?? null, coverUrl: b.cover ? URL.createObjectURL(b.cover) : null, coverHq: !!b.coverHq,
         // Not when the site already shows a cover for this book.
         keepCover: !!b.cover && !(b.matches?.[0] && b.matches[0].score >= 0.75 && b.matches[0].cover),
@@ -127,12 +128,29 @@ export default function SimaniaAddTab() {
         candidates: ranked.slice(0, 6).map((x) => x.c),
         chosen: best?.bookId ?? null,
         price: best ? String(suggestPrice(best) ?? '') : '',
+        priceNote: best && suggestPrice(best) != null ? 'ממוצע כל המוכרים' : '',
         status: !best ? 'nomatch' : best.owned ? 'owned' : 'ready',
         include: !!best && !best.owned,
       });
+      if (best && !best.owned) await priceFromOffers(r.key, best.bookId);
     } catch (e) {
       update(r.key, { status: 'failed', error: (e as Error).message === 'not connected' ? 'סימניה לא מחוברת' : 'החיפוש בסימניה לא הצליח' });
     }
+  }
+
+  /** Price a book at the 25th percentile of the active sellers' prices on Simania. */
+  async function priceFromOffers(key: number, bookId: number) {
+    const b = bridge.current;
+    if (!b?.connected) return;
+    try {
+      const p = offerPrice(await b.offers(bookId));
+      const now = rowsRef.current.find((x) => x.key === key);
+      if (!p || !now || now.chosen !== bookId || now.status === 'added') return;
+      update(key, {
+        price: String(p.price),
+        priceNote: p.activeOnly ? `זול מ־75% מ־${p.count} מוכרים פעילים` : `זול מ־75% מ־${p.count} מוכרים (מעט מוכרים פעילים)`,
+      });
+    } catch { /* keep the average price */ }
   }
 
   async function searchAll(list = rowsRef.current) {
@@ -154,8 +172,10 @@ export default function SimaniaAddTab() {
     const c = r.candidates.find((x) => x.bookId === bookId) ?? null;
     update(r.key, {
       chosen: bookId, price: c ? String(suggestPrice(c) ?? r.price) : r.price,
+      priceNote: c && suggestPrice(c) != null ? 'ממוצע כל המוכרים' : '',
       status: !c ? 'nomatch' : c.owned ? 'owned' : 'ready', include: !!c && !c.owned,
     });
+    if (c && !c.owned) void priceFromOffers(r.key, c.bookId);
   }
 
   const ready = rows.filter((r) => r.include && r.chosen && Number(r.price) > 0 && r.status !== 'added');
@@ -221,7 +241,7 @@ export default function SimaniaAddTab() {
   }
 
   function addManual() {
-    setRows((rs) => [...rs, { key: nextKey++, title: '', author: '', copies: 1, inSite: null, include: true, candidates: [], chosen: null, condition, price: '', status: 'new', cover: null, coverUrl: null, coverHq: false, keepCover: false, coverState: '' }]);
+    setRows((rs) => [...rs, { key: nextKey++, title: '', author: '', copies: 1, inSite: null, include: true, candidates: [], chosen: null, condition, price: '', priceNote: '', status: 'new', cover: null, coverUrl: null, coverHq: false, keepCover: false, coverState: '' }]);
   }
 
   return (
@@ -339,8 +359,9 @@ export default function SimaniaAddTab() {
                     </select>
                     <label className="add-price">
                       <input type="number" min={1} inputMode="numeric" value={r.price} disabled={locked}
-                        onChange={(e) => update(r.key, { price: e.target.value })} aria-label="מחיר" /> ₪
+                        onChange={(e) => update(r.key, { price: e.target.value, priceNote: 'מחיר שהוזן ידנית' })} aria-label="מחיר" /> ₪
                     </label>
+                    {r.priceNote && <span className="add-price-note">{r.priceNote}</span>}
                   </div>
                 </li>
               );

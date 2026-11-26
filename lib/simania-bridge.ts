@@ -22,6 +22,9 @@ export interface CatalogBook {
   sellers: number | null;
 }
 
+/** One seller's offer for a book, from the book's page on Simania. */
+export interface Offer { price: number; condition: number; inStock: boolean; userId: number; days: number | null; }
+
 export interface AddResult { bookId: number; ok: boolean; status: number; error: string | null; }
 
 /** Simania's conditions, as its add form numbers them. */
@@ -77,6 +80,9 @@ export class SimaniaBridge {
 
   search(q: string) { return this.call<CatalogBook[]>({ op: 'search', q }, 30_000); }
 
+  /** Every seller's offer for one book (null when the open Simania tab runs an older bridge). */
+  offers(bookId: number) { return this.call<Offer[] | null>({ op: 'offers', bookId }, 30_000); }
+
   add(items: { bookId: number; price: number; condition: number }[]) {
     return this.call<AddResult[]>({ op: 'add', items }, 30_000 + items.length * 5_000);
   }
@@ -118,7 +124,32 @@ export function queriesFor(title: string, author?: string): string[] {
   return [...new Set(out)];
 }
 
-/** A suggested price from Simania's market prices: the average, rounded to whole shekels. */
+/** The store's own user on Simania: its offers are left out of the price comparison. */
+export const STORE_SIMANIA_USER = 36217;
+/** Simania shows a seller as "פעיל" (active) when they were on the site in the last 30 days. */
+const ACTIVE_DAYS = 30;
+/** With fewer active sellers than this, all sellers are counted. */
+const MIN_ACTIVE = 3;
+
+export interface OfferPrice { price: number; count: number; activeOnly: boolean; }
+
+/**
+ * The store's price for a book: the 25th percentile of the prices offered by active sellers
+ * ("ממוצע־זול": cheaper than three quarters of them), in whole shekels.
+ */
+export function offerPrice(offers: Offer[] | null): OfferPrice | null {
+  if (!offers) return null;
+  const others = offers.filter((o) => o.inStock && o.price > 0 && o.userId !== STORE_SIMANIA_USER);
+  const active = others.filter((o) => o.days != null && o.days < ACTIVE_DAYS);
+  const pool = active.length >= MIN_ACTIVE ? active : others;
+  if (!pool.length) return null;
+  const p = pool.map((o) => o.price).sort((a, b) => a - b);
+  const at = (p.length - 1) * 0.25, lo = Math.floor(at);
+  const q = p[lo] + (p[Math.min(lo + 1, p.length - 1)] - p[lo]) * (at - lo);
+  return { price: Math.max(1, Math.round(q)), count: pool.length, activeOnly: pool === active };
+}
+
+/** A fallback price from Simania's market prices: the average, rounded to whole shekels. */
 export function suggestPrice(b: CatalogBook | null): number | null {
   if (!b) return null;
   const p = b.avg ?? (b.min != null && b.max != null ? (b.min + b.max) / 2 : null);
