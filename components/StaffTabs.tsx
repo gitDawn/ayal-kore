@@ -12,12 +12,14 @@ import SimaniaSync from '@/components/SimaniaSync';
 import SearchStats from '@/components/SearchStats';
 import RecommendationsAdmin from '@/components/RecommendationsAdmin';
 import BackupTab from '@/components/BackupTab';
+import SimaniaAddTab from '@/components/SimaniaAddTab';
 
-export type Section = 'upload' | 'edit' | 'covers' | 'simania' | 'searches' | 'recommendations' | 'backup';
+export type Section = 'upload' | 'edit' | 'covers' | 'simania' | 'searches' | 'recommendations' | 'backup' | 'simania-add';
 
 const PATHS: Record<Section, string> = {
   upload: '/admin/upload', edit: '/admin/edit-books', covers: '/admin', simania: '/admin/simania',
   searches: '/admin/searches', recommendations: '/admin/recommendations', backup: '/admin/backup',
+  'simania-add': '/admin/simania-add',
 };
 export const BANNERS: Record<Section, [string, string]> = {
   upload: ['עדכון מלאי', 'העלאת קובץ מלאי בפורמט CSV'],
@@ -27,6 +29,7 @@ export const BANNERS: Record<Section, [string, string]> = {
   searches: ['חיפושים באתר', 'מה מבקרים מחפשים, ומה חיפשו ולא מצאו'],
   recommendations: ['המלצות', 'סרטונים מפייסבוק והספרים שמופיעים בהם'],
   backup: ['גיבוי', 'הורדת הנתונים והכריכות למחשב'],
+  'simania-add': ['הוספה לסימניה', 'זיהוי ספרים מתמונה או סרטון והוספתם למלאי בסימניה'],
 };
 
 export function useSection(): Section {
@@ -34,6 +37,7 @@ export function useSection(): Section {
   if (p.endsWith('/upload')) return 'upload';
   if (p.endsWith('/edit-books')) return 'edit';
   if (p.endsWith('/covers')) return 'covers';
+  if (p.endsWith('/simania-add')) return 'simania-add';
   if (p.endsWith('/simania')) return 'simania';
   if (p.endsWith('/searches')) return 'searches';
   if (p.endsWith('/recommendations')) return 'recommendations';
@@ -52,6 +56,7 @@ export default function StaffTabs({ section, uploader }: { section: Section; upl
       <div className="chips" role="tablist" style={{ justifyContent: 'flex-start', margin: 0 }}>
         {tab('covers', 'ייבוא כריכות')}
         {tab('simania', 'סימניה')}
+        {tab('simania-add', 'הוספה לסימניה')}
         {tab('upload', 'עדכון מלאי')}
         {tab('searches', 'חיפושים באתר')}
         {tab('edit', 'עריכת ספרים')}
@@ -63,6 +68,7 @@ export default function StaffTabs({ section, uploader }: { section: Section; upl
         : section === 'searches' ? <SearchStats />
         : section === 'recommendations' ? <RecommendationsAdmin />
         : section === 'backup' ? <BackupTab />
+        : section === 'simania-add' ? <SimaniaAddTab />
         : section === 'edit' ? <BookEditor key={openKey ?? 'all'} initialKey={openKey} />
         : <CoverImporter onOpenBook={(k) => router.push(`${PATHS.edit}?book=${encodeURIComponent(k)}`)} />}
     </>

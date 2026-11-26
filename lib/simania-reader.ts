@@ -48,8 +48,36 @@ else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JS
 box.textContent='נקראו '+items.length+' עותקים ונשמרו לקובץ. העלו את הקובץ בלשונית "סימניה" באתר.'}}
 catch(e){box.textContent='שגיאה: '+(e&&e.message||e)}})();`;
 
-/** The reader's code, served at /simania-reader.js. */
-export const READER_SCRIPT = READER;
+export const BRIDGE_KEY = 'haayal-job=bridge';
+export const BRIDGE_READY = 'simania-bridge-ready';
+export const BRIDGE_CALL = 'simania-bridge';
+export const BRIDGE_REPLY = 'simania-bridge-reply';
+
+/**
+ * Runs on Simania's inventory page when the site opened it as a bridge ("הוספה לסימניה"):
+ * answers the site tab that opened it, and only that tab, with two operations:
+ *   search  look a title up in Simania's catalog;
+ *   add     add books to the store's stock (bookId, price, condition 1–5), one request each.
+ */
+export const BRIDGE = `(()=>{
+const O=${JSON.stringify(SITE_ORIGIN)};
+if(window.__haayalBridge)return;window.__haayalBridge=true;
+const box=document.createElement('div');
+box.style.cssText='position:fixed;top:12px;left:12px;z-index:2147483647;background:#5b4636;color:#fff;padding:14px 18px;border-radius:10px;font:16px/1.5 Arial,sans-serif;direction:rtl;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:360px';
+document.body.appendChild(box);
+if(!window.opener){box.textContent='יש לפתוח את הלשונית הזו מהכפתור באתר האיל הקורא (הוספה לסימניה).';return}
+let added=0;const show=()=>{box.textContent='מחובר לאתר האיל הקורא. השאירו את הלשונית הזו פתוחה וחזרו לאתר.'+(added?' נוספו '+added+' ספרים.':'')};show();
+const pick=i=>({bookId:i.bookId,title:i.bookTitle,author:i.bookAuthor,year:i.year,publisher:i.publisher,cover:i.hasImage?i.coverImage:null,owned:!!i.isOwned,status:i.status,avg:i.marketAvgPrice,min:i.marketMinPrice,max:i.marketMaxPrice,sellers:i.sellerCount});
+async function search(q){const r=await fetch('/api/sellers/inventory?page=1&pageSize=8&scope=catalog&filter=all&sort=relevance&includeCounts=false&search='+encodeURIComponent(q),{credentials:'include'});if(!r.ok)throw new Error('search '+r.status);const j=await r.json();return (j.items||[]).map(pick)}
+async function add(items){const out=[];for(const it of items){try{const r=await fetch('/api/sellers/inventory',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookId:it.bookId,price:it.price,condition:it.condition})});let body=null;try{body=await r.json()}catch(e){}out.push({bookId:it.bookId,ok:r.ok,status:r.status,error:r.ok?null:(body&&(body.error||body.message))||null});if(r.ok){added++;show()}}catch(e){out.push({bookId:it.bookId,ok:false,status:0,error:String(e&&e.message||e)})}await new Promise(s=>setTimeout(s,300))}return out}
+window.addEventListener('message',async e=>{if(e.origin!==O||e.source!==window.opener)return;const m=e.data;if(!m||m.kind!==${JSON.stringify(BRIDGE_CALL)})return;
+let reply;try{const result=m.op==='search'?await search(String(m.q||'')):m.op==='add'?await add(Array.isArray(m.items)?m.items:[]):null;reply={ok:true,result}}catch(err){reply={ok:false,error:String(err&&err.message||err)}}
+window.opener.postMessage({kind:${JSON.stringify(BRIDGE_REPLY)},id:m.id,...reply},O)});
+window.opener.postMessage({kind:${JSON.stringify(BRIDGE_READY)}},O);
+})();`;
+
+/** The code served at /simania-reader.js: the bridge when the site asked for one, otherwise the stock reader. */
+export const READER_SCRIPT = `if(location.hash.indexOf(${JSON.stringify(BRIDGE_KEY)})>=0){${BRIDGE}}else{${READER}}`;
 
 /** The bookmark itself: loads the current reader from the site, so it never needs replacing. */
 export const BOOKMARKLET = `javascript:${encodeURIComponent(

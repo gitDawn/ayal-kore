@@ -81,17 +81,22 @@ export async function videoAudio(file: File, rate: number, maxSeconds: number): 
 }
 
 export interface ScanMatch extends BookHit { score: number; }
-export interface ScanBook { title: string; author?: string; featured: boolean; source?: string; matches: ScanMatch[]; }
+export interface ScanBook { title: string; author?: string; featured: boolean; source?: string; copies?: number; matches: ScanMatch[]; }
 export interface ScanResult { model: string; frames: number; audio: boolean; books: ScanBook[]; }
 
+/** Which instructions the recognition uses: 'video' for recommendation videos, 'shelf' for books to add to stock. */
+export type ScanMode = 'video' | 'shelf';
+
 /** Prepare the video, send it, and return the books found with their matches in stock. */
-export async function scanVideo(file: File, onProgress: (text: string) => void): Promise<ScanResult> {
+export async function scanVideo(file: File, onProgress: (text: string) => void, mode: ScanMode = 'video'): Promise<ScanResult> {
   onProgress('קורא את הסרטון…');
   const d = await videoDuration(file);
-  const frameCount = Math.max(8, Math.min(40, Math.ceil(d / 1.5)));
+  // Shelf frames are larger, so fewer of them keep the answer within the time limit.
+  const frameCount = Math.max(8, Math.min(mode === 'shelf' ? 16 : 40, Math.ceil(d / 1.5)));
   onProgress('מחלץ את הקול…');
   const audio = await videoAudio(file, d <= 120 ? 16000 : 8000, 180);
-  const frames = await videoFrames(file, frameCount, 720, 0.7, (i, n) => onProgress(`חותך תמונות מהסרטון: ${i} מתוך ${n}`));
+  // Books on shelves need sharper frames to read the spines.
+  const frames = await videoFrames(file, frameCount, mode === 'shelf' ? 1280 : 720, mode === 'shelf' ? 0.8 : 0.7, (i, n) => onProgress(`חותך תמונות מהסרטון: ${i} מתוך ${n}`));
 
   // Keep within the request size: drop the sound first, then every other frame.
   let parts = [...frames];
@@ -103,7 +108,77 @@ export async function scanVideo(file: File, onProgress: (text: string) => void):
   const form = new FormData();
   parts.forEach((b, i) => form.append('frames', b, `f${i}.jpg`));
   if (sound) form.append('audio', sound, 'audio.wav');
+  if (mode !== 'video') form.append('mode', mode);
+  return sendScan(form, onProgress);
+}
 
+/** Draw part of an image (sx, sy, sw, sh) at most maxSide pixels on its long side, as JPEG. */
+async function crop(img: ImageBitmap, sx: number, sy: number, sw: number, sh: number, maxSide: number, quality: number): Promise<Blob> {
+  const scale = Math.min(1, maxSide / Math.max(sw, sh));
+  const c = document.createElement('canvas');
+  c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
+  const ctx = c.getContext('2d')!;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return new Promise<Blob>((ok, bad) => c.toBlob((b) => (b ? ok(b) : bad(new Error('encode'))), 'image/jpeg', quality));
+}
+
+/**
+ * Photos of books: each photo is sent whole, followed by two overlapping close-up halves
+ * (left and right, or top and bottom), so spines and small print stay readable.
+ */
+export async function scanImages(files: File[], onProgress: (text: string) => void): Promise<ScanResult> {
+  // One request per picture keeps each answer fast; two run at a time and the lists are merged.
+  const one = async (file: File, halves: boolean) => {
+    const img = await createImageBitmap(file);
+    const out: Blob[] = [await crop(img, 0, 0, img.width, img.height, 1600, 0.8)];
+    if (halves) {
+      const wide = img.width >= img.height;
+      const w = wide ? Math.round(img.width * 0.55) : img.width, h = wide ? img.height : Math.round(img.height * 0.55);
+      out.push(await crop(img, 0, 0, w, h, 1600, 0.8));
+      out.push(await crop(img, img.width - w, img.height - h, w, h, 1600, 0.8));
+    }
+    const form = new FormData();
+    out.forEach((b, i) => form.append('frames', b, `f${i}.jpg`));
+    form.append('mode', 'shelf');
+    return sendScan(form, () => {});
+  };
+  let done = 0;
+  const results: ScanResult[] = new Array(files.length);
+  const report = () => onProgress(`מזהה ספרים בתמונות: ${done} מתוך ${files.length} הושלמו (עד דקה לכל תמונה)`);
+  report();
+  let next = 0;
+  let failure: Error | null = null;
+  const worker = async () => {
+    while (next < files.length) {
+      const i = next++;
+      try {
+        try { results[i] = await one(files[i], true); }
+        catch (e) { if (!/עמוס|איטי/.test((e as Error).message)) throw e; results[i] = await one(files[i], false); }
+      } catch (e) { failure = e as Error; }
+      done++; report();
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  const ok = results.filter(Boolean);
+  if (!ok.length) throw failure ?? new Error('הזיהוי לא הצליח.');
+  // The same book seen in two pictures is listed once, with the larger count of copies.
+  const key = (t: string) => t.replace(/[^\p{L}\p{N}]+/gu, ' ').trim().toLowerCase();
+  const seen = new Map<string, ScanBook>();
+  for (const r of ok) for (const b of r.books) {
+    const k = key(b.title);
+    const had = seen.get(k);
+    if (!had) seen.set(k, { ...b });
+    else {
+      had.copies = Math.max(had.copies || 1, b.copies || 1);
+      if (!had.author && b.author) had.author = b.author;
+      if (!had.matches?.length && b.matches?.length) had.matches = b.matches;
+    }
+  }
+  return { model: ok[0].model, frames: ok.reduce((a, r) => a + r.frames, 0), audio: false, books: [...seen.values()] };
+}
+
+async function sendScan(form: FormData, onProgress: (text: string) => void): Promise<ScanResult> {
   onProgress('שולח ל-Gemini ומזהה ספרים… (עד דקה)');
   const { data } = await supabase().auth.getSession();
   const res = await fetch('/video-scan', {

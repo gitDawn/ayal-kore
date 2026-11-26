@@ -16,6 +16,19 @@ Find every book that the video shows or talks about and whose title you can actu
 - source: "cover" (front cover), "spine", or "speech" (only mentioned in the sound).
 - Do not guess: leave out any title you cannot read with confidence.`;
 
+// Photos or a video of books to add to the store's stock: piles, tables and shelves (spines).
+const SHELF_PROMPT = `These are photos, or frames in order from a short video, of books in Israel: on a table, in a pile or on shelves (spines),
+and possibly the video's sound track. Some photos are followed by close-up crops of the same photo, to make small print readable.
+List every distinct book whose title you can actually read.
+- Most titles are in Hebrew. Write the title exactly as printed (in Hebrew when it is Hebrew), without quotes.
+- Put the author in "author" only, never inside the title. Write the author's name as printed on the book.
+- Keep a subtitle or a volume / part number that is printed on the book (for example "חלק ב").
+- Ignore library labels and stickers (shelf marks such as "פנטזיה 3 מרטי").
+- The same book seen in several photos, frames or crops is one entry. copies = how many copies of that same book you see.
+- featured = true for a book shown from the front (its cover); false for a book seen only by its spine.
+- source: "cover", "spine", or "speech" (only mentioned in the sound).
+- Do not guess: leave out any title you cannot read with confidence.`;
+
 const SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -28,6 +41,7 @@ const SCHEMA = {
           author: { type: 'STRING' },
           featured: { type: 'BOOLEAN' },
           source: { type: 'STRING', enum: ['cover', 'spine', 'speech'] },
+          copies: { type: 'INTEGER' },
         },
         required: ['title', 'featured'],
       },
@@ -36,7 +50,7 @@ const SCHEMA = {
   required: ['books'],
 };
 
-interface Found { title: string; author?: string; featured: boolean; source?: string; }
+interface Found { title: string; author?: string; featured: boolean; source?: string; copies?: number; }
 
 async function isStaff(token: string): Promise<boolean> {
   if (!token) return false;
@@ -141,7 +155,7 @@ export async function POST(req: Request) {
   const audio = form.get('audio');
   if (!frames.length) return Response.json({ error: 'no frames' }, { status: 400 });
 
-  const parts: unknown[] = [{ text: PROMPT }];
+  const parts: unknown[] = [{ text: form.get('mode') === 'shelf' ? SHELF_PROMPT : PROMPT }];
   for (const f of frames) parts.push({ inlineData: { mimeType: 'image/jpeg', data: await toBase64(f) } });
   if (audio instanceof File && audio.size > 0) parts.push({ inlineData: { mimeType: 'audio/wav', data: await toBase64(audio) } });
 
