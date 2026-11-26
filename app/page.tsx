@@ -1,6 +1,8 @@
 import { SiteNav, Banner, SiteFoot, StoreStrip } from '@/components/Chrome';
 import SearchApp from '@/components/SearchApp';
 import StorePhoto from '@/components/StorePhoto';
+import HomeRecommendations from '@/components/HomeRecommendations';
+import '@/components/SearchApp.css';
 import { latestVersion, snapshotUrl } from '@/lib/server-inventory';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/inventory';
 import { jsonLd, storeLd } from '@/lib/jsonLd';
@@ -49,6 +51,7 @@ export default async function Home() {
             </div>
           )}
           <p className="search-hint all-cats"><Link href="/category">לעיון בכל הקטגוריות</Link></p>
+          <HomeRecommendations />
           <StorePhoto />
           <StoreStrip />
         </div>

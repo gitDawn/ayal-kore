@@ -1,0 +1,17 @@
+.home-recs { border-top: 1px solid var(--line); }
+.home-recs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.home-recs-head h2 { margin: 0; font-size: 22px; }
+.home-recs-head a { color: var(--ink); font-weight: 600; font-size: 15px; }
+.home-rec { margin-top: 14px; }
+.home-rec h3 { margin: 0 0 8px; font-size: 17px; }
+.home-rec h3 a { color: var(--ink); text-decoration: none; }
+.home-rec h3 a:hover { text-decoration: underline; }
+/* One row of books that scrolls sideways, so the section stays short. */
+.home-rec-row { list-style: none; margin: 0; padding: 0 0 8px; display: grid; grid-auto-flow: column; grid-auto-columns: 140px; gap: 14px; overflow-x: auto; scroll-snap-type: x proximity; }
+.home-rec-row li { scroll-snap-align: start; }
+.home-rec-book { display: flex; flex-direction: column; gap: 4px; color: var(--ink); text-decoration: none; }
+.home-rec-book:hover .home-rec-title { text-decoration: underline; }
+.home-rec-title { font-size: 14px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.home-rec-author { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-rec-book .book-price { align-self: flex-start; margin-top: 2px; }
+@media (max-width: 560px) { .home-rec-row { grid-auto-columns: 120px; gap: 10px; } }
