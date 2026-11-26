@@ -1,7 +1,7 @@
 // Staff "עדכון מסימניה": read the store's seller inventory on Simania (with the bookmarklet below),
 // show what would change on the site, and apply it only after staff approve.
 import { BUCKET, publicFileUrl, supabase, type InventoryVersion } from './supabase';
-import { COLUMNS, COND, P, decodeSnapshot, encodeSnapshot, inStock, type BookRow, type Snapshot } from './inventory';
+import { COLUMNS, COND, OUT, P, decodeSnapshot, encodeSnapshot, inStock, type BookRow, type Snapshot } from './inventory';
 import { countInStock } from './stock';
 import { bookKey, rowKey } from './categories';
 import { IMPORT_BUCKET, simaniaTags, type SimaniaRaw } from './simania';
@@ -24,6 +24,8 @@ export interface SimaniaPlan {
   rows: BookRow[];          // the site's rows after the merge (without the added ones)
   added: BookRow[];
   returned: BookRow[];      // were marked out of stock, listed on Simania again
+  removed: BookRow[];       // in stock on the site but no longer listed on Simania: marked out of stock
+  full: boolean;            // the whole list was read, so books missing from it were removed on Simania
   changed: SimaniaChange[];
 }
 
@@ -89,7 +91,22 @@ export async function planSimania({ items, fetchedAt, since, pages, totalPages }
       changed.push({ title: site[0], author: site[1], fromCond: site[COND], toCond: next[COND], fromPrice: site[P], toPrice: next[P] });
     }
   }
-  return { items, fetchedAt, since, pages, totalPages, base, rows, added, returned, changed };
+  // Only a read of the whole list shows which books were taken off Simania. Those that are still
+  // in stock on the site are marked out of stock (kept on the site for reference, like sold books).
+  const full = items.length > 0 && (since === 'all' || (since === null && !!pages && !!totalPages && pages >= totalPages));
+  const removed: BookRow[] = [];
+  if (full) {
+    for (const list of free.values()) {
+      for (const idx of list) {
+        if (!inStock(rows[idx])) continue;
+        removed.push(rows[idx]);
+        const next = rows[idx].slice(0, 8) as BookRow;
+        next[OUT] = 1;
+        rows[idx] = next;
+      }
+    }
+  }
+  return { items, fetchedAt, since, pages, totalPages, base, rows, added, returned, removed, full, changed };
 }
 
 /** Write the approved plan: Simania details, a new inventory version, the raw list.
@@ -127,7 +144,7 @@ export async function applySimania(plan: SimaniaPlan, onProgress: (text: string)
 
   const all = [...plan.rows, ...plan.added];
   let inStockNow = countInStock(all);
-  const touched = plan.changed.length + plan.returned.length;
+  const touched = plan.changed.length + plan.returned.length + plan.removed.length;
   if (plan.added.length || touched) {
     onProgress('מעדכן את המלאי באתר…');
     const snap: Snapshot = { columns: [...COLUMNS], rows: all, createdAt: now, sourceFileName: `סימניה ${fileName}` };
@@ -137,7 +154,7 @@ export async function applySimania(plan: SimaniaPlan, onProgress: (text: string)
     if (up.error) throw up.error;
     const ins = await sb.from('inventory_versions').insert({
       file_path: path, row_count: inStockNow, source_file_name: `סימניה ${fileName}`,
-      note: `מסימניה: נוספו ${plan.added.length} ספרים, חזרו למלאי ${plan.returned.length}, עודכנו מחיר או מצב של ${plan.changed.length} עותקים`,
+      note: `מסימניה: נוספו ${plan.added.length} ספרים, חזרו למלאי ${plan.returned.length}, ירדו מהמלאי ${plan.removed.length}, עודכנו מחיר או מצב של ${plan.changed.length} עותקים`,
     });
     if (ins.error) { await sb.storage.from(BUCKET).remove([path]); throw ins.error; }
   } else {

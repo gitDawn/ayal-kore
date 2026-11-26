@@ -98,6 +98,7 @@ export default function SimaniaSync({ onDone }: { onDone?: () => void }) {
         <p className="sub" style={{ margin: 0 }}>
           קוראים את המלאי של החנות בסימניה, רואים מה ישתנה באתר, ומעדכנים רק אחרי אישור.
           ספרים שסומנו &quot;לא במלאי&quot; חוזרים למלאי רק אם הם מוצעים למכירה בסימניה.
+          ספרים שהורדו מסימניה מסומנים באתר &quot;לא במלאי&quot; רק בקריאה של &quot;הכל&quot;, כי רק אז נקראת הרשימה המלאה.
         </p>
       </div>
 
@@ -151,7 +152,8 @@ export default function SimaniaSync({ onDone }: { onDone?: () => void }) {
           <h3 style={{ margin: 0 }}>תצוגה מקדימה</h3>
           {plan.since && plan.since !== 'all' ? (
             <p className="sub" style={{ margin: 0 }}>
-              נקראו רק העותקים שעודכנו בסימניה {PERIOD[plan.since]}. ספרים שלא נקראו נשארים באתר בלי שינוי.
+              נקראו רק העותקים שעודכנו בסימניה {PERIOD[plan.since]}. ספרים שלא נקראו נשארים באתר בלי שינוי,
+              וגם ספרים שהורדו מסימניה לא יזוהו. כדי לזהות אותם, קראו עם &quot;הכל&quot;.
             </p>
           ) : !plan.since && plan.pages && plan.totalPages && plan.pages < plan.totalPages ? (
             <p className="sub" style={{ margin: 0 }}>
@@ -163,6 +165,7 @@ export default function SimaniaSync({ onDone }: { onDone?: () => void }) {
             <div className="stat"><b>{nf(plan.items.length)}</b><span>עותקים בסימניה</span></div>
             <div className="stat"><b>{nf(plan.added.length)}</b><span>ספרים חדשים</span></div>
             <div className="stat"><b>{nf(plan.returned.length)}</b><span>יחזרו למלאי</span></div>
+            {plan.full && <div className="stat"><b>{nf(plan.removed.length)}</b><span>ירדו מסימניה</span></div>}
             <div className="stat"><b>{nf(plan.changed.filter((c) => c.fromPrice !== c.toPrice).length)}</b><span>שינויי מחיר</span></div>
             <div className="stat"><b>{nf(plan.changed.filter((c) => c.fromCond !== c.toCond).length)}</b><span>שינויי מצב</span></div>
           </div>
@@ -183,6 +186,17 @@ export default function SimaniaSync({ onDone }: { onDone?: () => void }) {
               </ul>
             </details>
           )}
+          {plan.removed.length > 0 && (
+            <details open={plan.removed.length <= 30}>
+              <summary>ספרים שהורדו מסימניה ויסומנו באתר &quot;לא במלאי&quot; ({nf(plan.removed.length)})</summary>
+              {plan.removed.length > plan.items.length / 2 && (
+                <p className="msg err">שימו לב: זה הרבה ספרים ביחס לרשימה שנקראה. אם הקריאה נקטעה באמצע, אל תעדכנו, וקראו שוב.</p>
+              )}
+              <ul className="sim-changes">
+                {plan.removed.map((r, i) => <li key={i}>{r[0]}{r[1] ? `, ${r[1]}` : ''} · {r[2] || 'ללא מצב'} · {r[3]} ₪</li>)}
+              </ul>
+            </details>
+          )}
           {plan.changed.length > 0 && (
             <details open={plan.changed.length <= 30}>
               <summary>שינויי מחיר או מצב ({nf(plan.changed.length)})</summary>
@@ -197,7 +211,7 @@ export default function SimaniaSync({ onDone }: { onDone?: () => void }) {
               </ul>
             </details>
           )}
-          {!plan.added.length && !plan.returned.length && !plan.changed.length && (
+          {!plan.added.length && !plan.returned.length && !plan.removed.length && !plan.changed.length && (
             <p className="msg info">אין שינויים במלאי. העדכון ישמור רק תאריכי עדכון ותגיות.</p>
           )}
 
@@ -210,7 +224,7 @@ export default function SimaniaSync({ onDone }: { onDone?: () => void }) {
 
       {phase === 'done' && result && plan && (
         <p className="msg ok">
-          האתר עודכן: נוספו {nf(plan.added.length)} ספרים, חזרו למלאי {nf(plan.returned.length)}, עודכנו {nf(plan.changed.length)} עותקים.
+          האתר עודכן: נוספו {nf(plan.added.length)} ספרים, חזרו למלאי {nf(plan.returned.length)}{plan.full ? `, ירדו מהמלאי ${nf(plan.removed.length)}` : ''}, עודכנו {nf(plan.changed.length)} עותקים.
           יש עכשיו {nf(result.inStock)} ספרים במלאי. החיפוש באתר יתעדכן תוך כמה דקות.
         </p>
       )}
