@@ -3,7 +3,8 @@
 .home-recs-head h2 { margin: 0; font-size: 22px; }
 .home-recs-head a { color: var(--ink); font-weight: 600; font-size: 15px; }
 .home-rec { margin-top: 14px; }
-.home-rec h3 { margin: 0 0 8px; font-size: 17px; }
+.home-rec h3 { margin: 0 0 4px; font-size: 17px; }
+.home-rec-text { margin: 0 0 10px; font-size: 15px; line-height: 1.5; color: var(--ink); white-space: pre-line; }
 .home-rec h3 a { color: var(--ink); text-decoration: none; }
 .home-rec h3 a:hover { text-decoration: underline; }
 /* One row of books that scrolls sideways, so the section stays short. */

@@ -29,6 +29,7 @@ export default async function HomeRecommendations() {
       {rows.map(({ r, books }) => (
         <div key={r.id} className="home-rec">
           <h3><Link href={`/recommendations#${r.id}`}>{r.title}</Link></h3>
+          {r.text && <p className="home-rec-text">{r.text}</p>}
           <ul className="home-rec-row">
             {books.map((b) => (
               <li key={b!.id}>
