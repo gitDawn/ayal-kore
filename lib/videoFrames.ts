@@ -105,7 +105,12 @@ async function cutCover(img: ImageBitmap, rect: Rect, box: number[] | undefined)
   const right = Math.min(img.width, sx + (x1 / 1000 + pad) * sw), bottom = Math.min(img.height, sy + (y1 / 1000 + pad) * sh);
   const w = Math.round(right - left), h = Math.round(bottom - top);
   if (w < 40 || h < 60) return null;
-  const part = await createImageBitmap(img, Math.round(left), Math.round(top), w, h);
+  // Drawn on a canvas, the same way the pictures sent to Gemini were drawn. (A crop rectangle passed to
+  // createImageBitmap is read before the photo's rotation on some phones, which cut the wrong place.)
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d')!.drawImage(img, Math.round(left), Math.round(top), w, h, 0, 0, w, h);
+  const part = await createImageBitmap(c);
   const hq = w >= 450;
   try { return { blob: await toSmallImage(part, hq ? 600 : 300), hq, area: w * h }; } finally { part.close(); }
 }
@@ -174,7 +179,7 @@ async function crop(img: ImageBitmap, sx: number, sy: number, sw: number, sh: nu
 export async function scanImages(files: File[], onProgress: (text: string) => void): Promise<ScanResult> {
   // One request per picture keeps each answer fast; two run at a time and the lists are merged.
   const one = async (file: File, halves: boolean) => {
-    const img = await createImageBitmap(file);
+    const img = await createImageBitmap(file, { imageOrientation: 'from-image' });
     const rects: Rect[] = [[0, 0, img.width, img.height]];
     if (halves) {
       const wide = img.width >= img.height;

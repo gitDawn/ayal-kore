@@ -15,10 +15,17 @@
 .add-price { display: flex; gap: 4px; align-items: center; font-size: 14px; }
 .add-price input { width: 76px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; }
 @media (max-width: 640px) {
-  .add-row { grid-template-columns: auto 56px 1fr; }
-  .add-sale { grid-column: 2 / -1; justify-items: start; grid-auto-flow: column; }
+  /* Phone: checkbox and cover on the right, the book's details beside them, price and condition below. */
+  .add-row { grid-template-columns: auto 76px minmax(0, 1fr); gap: 8px; padding: 8px; }
+  .add-coverbox { width: 76px; }
+  .add-cover { width: 76px; height: 104px; }
+  .add-found { flex-direction: column; }
+  .add-found input { flex: none; width: 100%; box-sizing: border-box; }
+  .add-found .btn { align-self: flex-start; font-size: 13px; padding: 4px 12px; }
+  .add-body select { width: 100%; }
+  .add-sale { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-start; align-items: center; }
 }
-.add-coverbox { display: grid; gap: 4px; justify-items: center; }
+.add-coverbox { display: grid; gap: 4px; justify-items: center; align-content: start; min-width: 0; }
 .add-cover-note { font-size: 12px; display: flex; gap: 4px; align-items: center; color: var(--muted); }
 .add-cover-note.ok { color: #2d7a45; }
 .add-cover-note.err { color: #b03a3a; }
