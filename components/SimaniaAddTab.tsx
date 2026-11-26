@@ -9,7 +9,9 @@ import './SimaniaAdd.css';
 import './BookEditor.css';
 import { scanImages, scanVideo, type ScanBook } from '@/lib/videoFrames';
 import { CONDITIONS, SimaniaBridge, fit, queriesFor, suggestPrice, type CatalogBook } from '@/lib/simania-bridge';
-import { bookKey } from '@/lib/categories';
+import { bookKey, cleanList, fetchCategoryEdits, fileCategories } from '@/lib/categories';
+import { loadUniqueBooks } from '@/lib/catalog-client';
+import TagInput from './TagInput';
 import { saveCover } from '@/lib/covers';
 import { supabase } from '@/lib/supabase';
 
@@ -53,6 +55,31 @@ export default function SimaniaAddTab() {
   rowsRef.current = rows;
 
   useEffect(() => { bridge.current = new SimaniaBridge(); return () => bridge.current?.dispose(); }, []);
+
+  // Category and subcategories for every book added in this round (shown on the site, optional).
+  const [batchCats, setBatchCats] = useState<string[]>([]);
+  const [batchSubs, setBatchSubs] = useState<string[]>([]);
+  const [vocab, setVocab] = useState<{ cats: string[]; subs: string[] }>({ cats: [], subs: [] });
+  useEffect(() => {
+    Promise.all([loadUniqueBooks(), fetchCategoryEdits()]).then(([books, edits]) => {
+      const cats = new Set<string>(), subs = new Set<string>();
+      for (const b of books) { const c = fileCategories(b.row); c.categories.forEach((x) => cats.add(x)); c.subcategories.forEach((x) => subs.add(x)); }
+      edits.forEach((e) => { e.categories.forEach((x) => cats.add(x)); e.subcategories.forEach((x) => subs.add(x)); });
+      const sort = (x: Set<string>) => [...x].sort((a, b) => a.localeCompare(b, 'he'));
+      setVocab({ cats: sort(cats), subs: sort(subs) });
+    }).catch(() => {});
+  }, []);
+  const hasBatchCat = batchCats.length > 0 || batchSubs.length > 0;
+  const [catMsg, setCatMsg] = useState('');
+
+  /** Give the books added to Simania the chosen category on the site (by title and author as Simania lists them). */
+  async function saveBatchCategories(list: Row[]) {
+    const rowsToSave = list.map((r) => r.candidates.find((x) => x.bookId === r.chosen)).filter((c): c is CatalogBook => !!c)
+      .map((c) => ({ book_key: bookKey(c.title, c.author || ''), title: c.title, author: c.author || null, categories: cleanList(batchCats), subcategories: cleanList(batchSubs) }));
+    if (!rowsToSave.length) return;
+    const { error } = await supabase().from('book_categories').upsert(rowsToSave, { onConflict: 'book_key' });
+    setCatMsg(error ? 'שמירת הקטגוריה באתר נכשלה. אפשר לשייך אותה אחר כך ב"עריכת ספרים".' : `הקטגוריה נשמרה באתר ל־${rowsToSave.length} ספרים.`);
+  }
 
   const update = (key: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
@@ -167,7 +194,9 @@ export default function SimaniaAddTab() {
     const b = bridge.current;
     if (!b?.connected || !ready.length) return;
     const covers = ready.filter((r) => r.keepCover && r.cover).length;
-    if (!window.confirm(`להוסיף ${ready.length} ספרים למלאי של החנות בסימניה?${covers ? ` ${covers} כריכות מהצילום יישמרו באתר.` : ''}`)) return;
+    const catText = hasBatchCat ? ` קטגוריה באתר: ${[cleanList(batchCats).join(', '), cleanList(batchSubs).join(', ')].filter(Boolean).join(' › ')}.` : '';
+    if (!window.confirm(`להוסיף ${ready.length} ספרים למלאי של החנות בסימניה?${covers ? ` ${covers} כריכות מהצילום יישמרו באתר.` : ''}${catText}`)) return;
+    setCatMsg('');
     setError(''); setBusy('מוסיף לסימניה…');
     for (const r of ready) update(r.key, { status: 'adding' });
     try {
@@ -180,6 +209,10 @@ export default function SimaniaAddTab() {
       }
       const withCover = ready.filter((r) => r.keepCover && r.cover && results.find((x) => x.bookId === r.chosen)?.ok);
       if (withCover.length) { setBusy('שומר כריכות באתר…'); await saveCovers(withCover); }
+      if (hasBatchCat) {
+        setBusy('שומר קטגוריה באתר…');
+        await saveBatchCategories(ready.filter((r) => results.find((x) => x.bookId === r.chosen)?.ok));
+      }
       setDone({ added, failed });
     } catch {
       setError('ההוספה לא הצליחה. בדקו שהלשונית של סימניה עדיין פתוחה.');
@@ -314,6 +347,13 @@ export default function SimaniaAddTab() {
             })}
           </ul>
 
+          <div className="batch-cat">
+            <b>קטגוריה באתר לכל הספרים שיתווספו (לא חובה)</b>
+            <span className="muted">כל הספרים שיתווספו בסבב הזה יופיעו באתר תחת הקטגוריה ותתי הקטגוריות שנבחרו כאן. אפשר לבחור מהרשימה או לכתוב חדשה.</span>
+            <TagInput label="קטגוריה" values={batchCats} onChange={setBatchCats} suggestions={vocab.cats} listId="batch-cat-suggest" />
+            <TagInput label="תתי קטגוריות" values={batchSubs} onChange={setBatchSubs} suggestions={vocab.subs} listId="batch-sub-suggest" />
+          </div>
+
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn dark" type="button" disabled={!connected || !ready.length || !!busy} onClick={addAll}>
               הוספה לסימניה ({nf(ready.length)} ספרים)
@@ -325,6 +365,7 @@ export default function SimaniaAddTab() {
             {missingPrice > 0 && <span className="muted" style={{ fontSize: 13 }}>ל־{missingPrice} ספרים חסר מחיר, והם לא יתווספו עד שיהיה.</span>}
           </div>
 
+          {catMsg && <p className={/נכשלה/.test(catMsg) ? 'msg err' : 'msg ok'} style={{ margin: 0 }}>{catMsg}</p>}
           {done && (
             <p className={done.failed ? 'msg err' : 'msg ok'}>
               נוספו לסימניה {nf(done.added)} ספרים{done.failed ? `, ו־${nf(done.failed)} לא נוספו (הסיבה מופיעה ליד כל ספר)` : ''}.

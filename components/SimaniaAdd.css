@@ -30,3 +30,5 @@
 .add-cover-note { font-size: 11px; line-height: 1.2; display: flex; gap: 4px; align-items: flex-start; color: var(--muted); max-width: 76px; text-align: start; }
 .add-cover-note.ok { color: #2d7a45; }
 .add-cover-note.err { color: #b03a3a; }
+.batch-cat { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--row-alt); }
+.batch-cat .muted { font-size: 13px; color: var(--muted); }
