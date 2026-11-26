@@ -77,7 +77,7 @@ export default function AccessibilityPage() {
             <div className="a11y-contact">
               <h3>פרטי רכז הנגישות</h3>
               <ul>
-                <li>שם: רכז הנגישות של {SITE_NAME}</li>
+                <li>שם: איל מאירוביץ</li>
                 <li>טלפון: <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a></li>
                 <li>ווטסאפ: <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">שליחת הודעה בווטסאפ</a></li>
                 <li>כתובת החנות: רחוב השקמה 1, אזור</li>
