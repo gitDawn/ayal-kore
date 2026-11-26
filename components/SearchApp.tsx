@@ -41,6 +41,7 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
   const [draft, setDraft] = useState<Query>(EMPTY);
   const [query, setQuery] = useState<Query | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showCats, setShowCats] = useState(false); // the category list opens from the "קטגוריות" button
   const [sort, setSort] = useState<Sort>('title');
   const [shown, setShown] = useState(PAGE);
   const [open, setOpen] = useState<Indexed | null>(null); // book shown in the details window
@@ -156,6 +157,7 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
   }
 
   function browseCategory(cat: string) {
+    setShowCats(false);
     const q = { ...EMPTY, category: cat };
     setDraft(q);
     setShowFilters(true);
@@ -166,6 +168,7 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
   function backToCategories() {
     if ((window.history.state as { haayalSearch?: boolean } | null)?.haayalSearch) { window.history.back(); }
     else { setQuery(null); setDraft(EMPTY); }
+    setShowCats(true);
     setShown(PAGE);
     requestAnimationFrame(() => browseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
@@ -249,8 +252,10 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
 
       {books && categories.length > 0 && (
         <div className="browse" ref={browseRef}>
-          <h3>{query ? 'קטגוריות' : 'או דפדפו לפי קטגוריה'}</h3>
-          <div className="chips">
+          <button type="button" className="cats-toggle" aria-expanded={showCats} onClick={() => setShowCats(!showCats)}>
+            קטגוריות{query?.category ? `: ${query.category}` : ''} <span aria-hidden="true">{showCats ? '▴' : '▾'}</span>
+          </button>
+          {showCats && <div className="chips">
             {query && (
               <button type="button" className="chip" onClick={backToCategories}>כל הקטגוריות</button>
             )}
@@ -259,7 +264,7 @@ export default function SearchApp({ versionId, url, rowCount }: { versionId: str
                 {c}<small>{n.toLocaleString('he-IL')}</small>
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       )}
 

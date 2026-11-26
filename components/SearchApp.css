@@ -67,3 +67,9 @@
 
 /* Back from a category or a search to the full category list. */
 .back-btn { padding: 4px 14px; font-size: 14px; margin-inline-end: auto; }
+
+/* The category list, folded under one button to save space. */
+.browse { text-align: center; }
+.cats-toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--chip-border, var(--line)); background: #fff; color: var(--ink); border-radius: 999px; padding: 7px 18px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.cats-toggle[aria-expanded="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: transparent; }
+.browse .cats-toggle + .chips { margin-top: 12px; }
