@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = '27 בנובמבר 2026';
+const STORE_EMAIL = 'ayalmer@gmail.com';
 
 export default function PrivacyPage() {
   return (
@@ -43,8 +44,8 @@ export default function PrivacyPage() {
                 נשלחים אלינו.
               </li>
               <li>
-                <b>פניות אלינו:</b> כשאתם פונים אלינו בטלפון או בוואטסאפ, אנחנו רואים את מספר הטלפון ואת תוכן
-                ההודעה, ומשתמשים בהם רק כדי לטפל בפנייה ובהזמנה.
+                <b>פניות אלינו:</b> כשאתם פונים אלינו בטלפון, בוואטסאפ או בדואר אלקטרוני, אנחנו רואים את פרטי
+                הפנייה ואת תוכנה, ומשתמשים בהם רק כדי לטפל בפנייה ובהזמנה.
               </li>
               <li>
                 <b>צוות החנות:</b> אזור הניהול של האתר מיועד לצוות בלבד. לחשבונות הצוות נשמרים כתובת דואר
@@ -89,6 +90,7 @@ export default function PrivacyPage() {
               <ul>
                 <li>שם: איל מאירוביץ</li>
                 <li>טלפון או וואטסאפ: <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a></li>
+                <li>דואר אלקטרוני: <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a></li>
                 <li>כתובת: רחוב השקמה 1, אזור</li>
               </ul>
             </div>

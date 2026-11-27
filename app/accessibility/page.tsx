@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = '26 בנובמבר 2026';
+const STORE_EMAIL = 'ayalmer@gmail.com';
 const WHATSAPP = `https://wa.me/${STORE_PHONE_INTL.replace(/\D/g, '')}`;
 
 export default function AccessibilityPage() {
@@ -80,6 +81,7 @@ export default function AccessibilityPage() {
                 <li>שם: איל מאירוביץ</li>
                 <li>טלפון: <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a></li>
                 <li>ווטסאפ: <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">שליחת הודעה בווטסאפ</a></li>
+                <li>דואר אלקטרוני: <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a></li>
                 <li>כתובת החנות: רחוב השקמה 1, אזור</li>
               </ul>
               <p>אנו משתדלים לענות לכל פנייה בתוך זמן קצר.</p>

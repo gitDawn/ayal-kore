@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 const UPDATED = '27 בנובמבר 2026';
 const ADDRESS = 'רחוב השקמה 1, אזור';
+const STORE_EMAIL = 'ayalmer@gmail.com';
 const CANCEL_TEXT = `שלום, אני מבקש/ת לבטל עסקה.
 שם מלא:
 מספר תעודת זהות:
@@ -41,7 +42,7 @@ export default function CancelPage() {
                 <a className="wa-btn" href={WHATSAPP_CANCEL} target="_blank" rel="noopener noreferrer">שליחת הודעת ביטול בוואטסאפ</a>
               </p>
               <p style={{ margin: 0 }}>
-                או בטלפון <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>. כל הדרכים מפורטות למטה.
+                או בטלפון <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>, או בדואר אלקטרוני <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a>. כל הדרכים מפורטות למטה.
               </p>
             </div>
 
@@ -63,6 +64,7 @@ export default function CancelPage() {
             <ul>
               <li>בוואטסאפ, בכפתור שלמעלה או במספר <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>.</li>
               <li>בטלפון, במספר <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>.</li>
+              <li>בדואר אלקטרוני: <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a>.</li>
               <li>בעל פה בחנות, ב{ADDRESS}.</li>
               <li>בדואר רשום, לכתובת: {SITE_NAME}, {ADDRESS}.</li>
             </ul>

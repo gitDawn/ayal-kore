@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = '27 בנובמבר 2026';
+const STORE_EMAIL = 'ayalmer@gmail.com';
 const WHATSAPP = `https://wa.me/${STORE_PHONE_INTL.replace(/\D/g, '')}`;
 
 export default function TermsPage() {
@@ -27,6 +28,7 @@ export default function TermsPage() {
               <li>שם העסק: {SITE_NAME}, חנות ספרים יד שנייה</li>
               <li>כתובת: רחוב השקמה 1, אזור</li>
               <li>טלפון או וואטסאפ: <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a></li>
+              <li>דואר אלקטרוני: <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a></li>
             </ul>
 
             <h2>על האתר</h2>
@@ -67,7 +69,7 @@ export default function TermsPage() {
             <h2>יצירת קשר</h2>
             <p>
               לכל שאלה על הזמנה, ביטול או החזרה: טלפון <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>,{' '}
-              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">הודעה בוואטסאפ</a>, או בחנות ברחוב השקמה 1, אזור.
+              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">הודעה בוואטסאפ</a>, דואר אלקטרוני <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a>, או בחנות ברחוב השקמה 1, אזור.
             </p>
           </article>
         </div>
