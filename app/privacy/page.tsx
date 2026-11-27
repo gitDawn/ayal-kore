@@ -57,7 +57,8 @@ export default function PrivacyPage() {
             <p>חלקים מהאתר נעזרים בשירותים של חברות אחרות, שייתכן שיקבלו מהדפדפן מידע טכני כמו כתובת IP:</p>
             <ul>
               <li>אחסון האתר והנתונים: האתר והמלאי מאוחסנים אצל ספקי ענן.</li>
-              <li>גופנים: הגופנים באתר נטענים מ־Google Fonts.</li>
+              <li>גופנים: הגופנים באתר נטענים מ־ Google Fonts.</li>
+              <li>מפה: בעמוד &quot;יצירת קשר&quot; מוצגת מפה של Google Maps, וחלה עליה מדיניות הפרטיות של גוגל.</li>
               <li>
                 פייסבוק: בעמודים &quot;מהפייסבוק שלנו&quot; ו&quot;המלצות&quot; מוצגים פוסטים וסרטונים מתוך פייסבוק.
                 הצפייה בהם כפופה ל<a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">מדיניות הפרטיות של פייסבוק</a>.

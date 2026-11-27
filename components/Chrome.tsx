@@ -72,11 +72,7 @@ export function SiteFoot({ children }: { children?: React.ReactNode }) {
       <div className="site-foot-inner">
         <div className="contact">
           <span>{SITE_NAME}</span>
-          <a href={STORE_MAP} target="_blank" rel="noopener noreferrer">{STORE_ADDRESS}</a>
-          <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>
-          <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a>
-          <a href={STORE_SIMANIA} target="_blank" rel="noopener noreferrer">סימניה</a>
-          <a href={STORE_FACEBOOK} target="_blank" rel="noopener noreferrer">פייסבוק</a>
+          <Link href="/contact">יצירת קשר</Link>
           <Link href="/category">קטגוריות</Link>
           <Link href="/terms">תנאי מכירה</Link>
           <Link href="/cancel">ביטול עסקה והחזרות</Link>
