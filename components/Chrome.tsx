@@ -6,6 +6,7 @@ const STORE_ADDRESS = 'רחוב השקמה 1, אזור';
 const STORE_MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('השקמה 1 אזור');
 // Logo stored in the public covers bucket (verified byte-for-byte after upload).
 const LOGO_URL = 'https://hrsqrehrrkklntmvxbns.supabase.co/storage/v1/object/public/covers/site/logo-v2.png';
+const STORE_EMAIL = 'ayalmer@gmail.com';
 const STORE_SIMANIA = 'https://simania.co.il/userPage.php?userId=36217&tab=bookWorld';
 
 export function SiteNav({ active }: { active?: 'search' | 'recommendations' | 'facebook' | 'admin' }) {
@@ -73,6 +74,7 @@ export function SiteFoot({ children }: { children?: React.ReactNode }) {
           <span>{SITE_NAME}</span>
           <a href={STORE_MAP} target="_blank" rel="noopener noreferrer">{STORE_ADDRESS}</a>
           <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>
+          <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a>
           <a href={STORE_SIMANIA} target="_blank" rel="noopener noreferrer">סימניה</a>
           <a href={STORE_FACEBOOK} target="_blank" rel="noopener noreferrer">פייסבוק</a>
           <Link href="/category">קטגוריות</Link>
@@ -82,6 +84,11 @@ export function SiteFoot({ children }: { children?: React.ReactNode }) {
           <Link href="/accessibility">הצהרת נגישות</Link>
         </div>
         <span>{children}</span>
+        <p className="foot-cancel">
+          <Link href="/cancel">ביטול עסקה</Link>: בוואטסאפ או בטלפון{' '}
+          <a href={`tel:${STORE_PHONE_INTL}`} dir="ltr">{STORE_PHONE}</a>, בדואר אלקטרוני{' '}
+          <a href={`mailto:${STORE_EMAIL}`} dir="ltr">{STORE_EMAIL}</a>, בחנות, או בדואר רשום ל{SITE_NAME}, {STORE_ADDRESS}.
+        </p>
       </div>
     </footer>
   );

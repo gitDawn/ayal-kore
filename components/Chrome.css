@@ -9,3 +9,5 @@
   .nav-links { gap: 10px; }
   .nav-links a { font-size: 13px; }
 }
+
+.site-foot .foot-cancel { flex-basis: 100%; margin: 0; line-height: 1.6; }
