@@ -77,6 +77,7 @@ export function SiteFoot({ children }: { children?: React.ReactNode }) {
           <a href={STORE_FACEBOOK} target="_blank" rel="noopener noreferrer">פייסבוק</a>
           <Link href="/category">קטגוריות</Link>
           <Link href="/terms">תנאי מכירה</Link>
+          <Link href="/cancel">ביטול עסקה והחזרות</Link>
           <Link href="/privacy">מדיניות פרטיות</Link>
           <Link href="/accessibility">הצהרת נגישות</Link>
         </div>
